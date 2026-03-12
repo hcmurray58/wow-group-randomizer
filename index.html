@@ -15,8 +15,19 @@ margin:20px;
 
 .slot{
 border:1px solid #444;
+margin-bottom:10px;
+}
+
+.slotHeader{
+background:#222;
+padding:6px;
+cursor:pointer;
+font-weight:bold;
+}
+
+.slotBody{
 padding:10px;
-margin-bottom:15px;
+display:block;
 }
 
 .classRow{
@@ -37,8 +48,8 @@ margin-right:8px;
 .dps{color:#ff6b6b;}
 
 button{
-padding:6px 12px;
-margin-left:6px;
+padding:4px 10px;
+margin-left:4px;
 }
 
 .result{
@@ -46,13 +57,7 @@ margin-top:25px;
 font-size:18px;
 }
 
-.pugOptions{
-display:none;
-margin-top:6px;
-}
-
 </style>
-
 </head>
 <body>
 
@@ -60,9 +65,7 @@ margin-top:6px;
 
 <label><input type="checkbox" id="lustRequired"> Require Lust</label><br>
 <label><input type="checkbox" id="brezRequired"> Require Battle Rez</label><br>
-<label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label><br>
-<label><input type="checkbox" id="tankNonPug"> Tank must be non-pug</label><br>
-<label><input type="checkbox" id="healerNonPug"> Healer must be non-pug</label>
+<label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label>
 
 <h2>Group Slots</h2>
 
@@ -182,25 +185,25 @@ for(let i=0;i<5;i++){
 const slot=document.createElement("div")
 slot.className="slot"
 
-slot.innerHTML=`<b>Slot ${i+1}</b>
-<br>
-<label><input type="checkbox" class="pug"> PUG</label>
+slot.innerHTML=`
+<div class="slotHeader" onclick="toggleSlot(${i})">Slot ${i+1} - New Member</div>
+<div class="slotBody">
 
-<span class="pugOptions">
-Role:
-<label><input type="radio" name="pugRole${i}" value="tank">Tank</label>
-<label><input type="radio" name="pugRole${i}" value="healer">Healer</label>
-<label><input type="radio" name="pugRole${i}" value="dps" checked>DPS</label>
-</span>
+<label><input type="checkbox" class="pug" onchange="updateSlotTitle(${i})"> PUG</label>
 
 <br>
 <input placeholder="Preset name" class="presetName">
 <button onclick="savePreset(${i})">Save</button>
+
 <select class="presetSelect"></select>
 <button onclick="loadPreset(${i})">Load</button>
 
 <br><br>
+
+</div>
 `
+
+const body=slot.querySelector(".slotBody")
 
 Object.keys(classes).forEach(cls=>{
 
@@ -238,7 +241,7 @@ ${specHTML}
 </span>
 `
 
-slot.appendChild(row)
+body.appendChild(row)
 
 const classBox=row.querySelector(".classTick")
 const specSpan=row.querySelector(".specs")
@@ -260,13 +263,6 @@ specSpan.style.display="none"
 
 })
 
-const pugBox=slot.querySelector(".pug")
-const pugOptions=slot.querySelector(".pugOptions")
-
-pugBox.addEventListener("change",()=>{
-pugOptions.style.display=pugBox.checked?"inline":"none"
-})
-
 container.appendChild(slot)
 
 updatePresetDropdown(i)
@@ -277,20 +273,44 @@ updatePresetDropdown(i)
 
 createSlots()
 
-function random(arr){
-return arr[Math.floor(Math.random()*arr.length)]
+function toggleSlot(i){
+
+const slot=document.querySelectorAll(".slot")[i]
+const body=slot.querySelector(".slotBody")
+
+body.style.display = body.style.display==="none"?"block":"none"
+
 }
 
-function savePreset(slotIndex){
+function updateSlotTitle(i){
 
-const slot=document.querySelectorAll(".slot")[slotIndex]
+const slot=document.querySelectorAll(".slot")[i]
+const header=slot.querySelector(".slotHeader")
 
+if(slot.querySelector(".pug").checked){
+
+header.textContent=`Slot ${i+1} - PUG`
+
+}else{
+
+const name=slot.querySelector(".presetSelect").value
+
+header.textContent=name?`Slot ${i+1} - ${name.replace("wowSlotPreset_","")}`:`Slot ${i+1} - New Member`
+
+}
+
+}
+
+function savePreset(i){
+
+const slot=document.querySelectorAll(".slot")[i]
 const name=slot.querySelector(".presetName").value
+
 if(!name)return
 
 let preset=[]
 
-slot.querySelectorAll(".classTick").forEach((c,i)=>{
+slot.querySelectorAll(".classTick").forEach(c=>{
 
 preset.push({
 classEnabled:c.checked,
@@ -301,41 +321,47 @@ specs:[...c.parentElement.nextElementSibling.querySelectorAll("input")].map(s=>s
 
 localStorage.setItem("wowSlotPreset_"+name,JSON.stringify(preset))
 
-updatePresetDropdown(slotIndex)
+updatePresetDropdown(i)
+
+slot.querySelector(".presetSelect").value="wowSlotPreset_"+name
+
+updateSlotTitle(i)
 
 }
 
-function loadPreset(slotIndex){
+function loadPreset(i){
 
-const slot=document.querySelectorAll(".slot")[slotIndex]
-const select=slot.querySelector(".presetSelect")
+const slot=document.querySelectorAll(".slot")[i]
+const key=slot.querySelector(".presetSelect").value
 
-const preset=JSON.parse(localStorage.getItem(select.value))
+const preset=JSON.parse(localStorage.getItem(key))
 
-slot.querySelectorAll(".classTick").forEach((c,i)=>{
+slot.querySelectorAll(".classTick").forEach((c,index)=>{
 
-c.checked=preset[i].classEnabled
+c.checked=preset[index].classEnabled
 
 const specs=c.parentElement.nextElementSibling.querySelectorAll("input")
 
-specs.forEach((s,j)=>s.checked=preset[i].specs[j])
+specs.forEach((s,j)=>s.checked=preset[index].specs[j])
 
 c.parentElement.nextElementSibling.style.display=c.checked?"inline":"none"
 
 })
 
+updateSlotTitle(i)
+
 }
 
-function updatePresetDropdown(slotIndex){
+function updatePresetDropdown(i){
 
-const slot=document.querySelectorAll(".slot")[slotIndex]
+const slot=document.querySelectorAll(".slot")[i]
 const select=slot.querySelector(".presetSelect")
 
 select.innerHTML=""
 
-for(let i=0;i<localStorage.length;i++){
+for(let j=0;j<localStorage.length;j++){
 
-const key=localStorage.key(i)
+const key=localStorage.key(j)
 
 if(key.startsWith("wowSlotPreset_")){
 
@@ -351,26 +377,20 @@ select.appendChild(opt)
 
 }
 
+function random(arr){
+return arr[Math.floor(Math.random()*arr.length)]
+}
+
 function generate(){
 
 const slots=[...document.querySelectorAll(".slot")]
 let slotChoices=[]
 
-slots.forEach((slot,i)=>{
+slots.forEach(slot=>{
 
 if(slot.querySelector(".pug").checked){
 
-const role=slot.querySelector(`input[name="pugRole${i}"]:checked`).value
-
-let pool=[]
-
-Object.keys(classes).forEach(cls=>{
-classes[cls].forEach(s=>{
-if(s.role===role)pool.push({...s,class:cls})
-})
-})
-
-slotChoices.push(pool)
+slotChoices.push("pug")
 
 }else{
 
@@ -412,21 +432,38 @@ for(let attempt=0;attempt<10000;attempt++){
 
 let group=[]
 
-for(let i=0;i<5;i++){
-group.push(random(slotChoices[i]))
+let roles=["tank","healer","dps","dps","dps"]
+
+for(let i=roles.length-1;i>0;i--){
+const j=Math.floor(Math.random()*(i+1))
+;[roles[i],roles[j]]=[roles[j],roles[i]]
 }
 
-let tanks=group.filter(g=>g.role==="tank").length
-let healers=group.filter(g=>g.role==="healer").length
-let dps=group.filter(g=>g.role==="dps").length
+for(let i=0;i<5;i++){
 
-if(tanks!==1||healers!==1||dps!==3)continue
+if(slotChoices[i]==="pug"){
+
+group.push({pug:true,role:roles[i]})
+
+}else{
+
+const options=slotChoices[i].filter(o=>o.role===roles[i])
+
+if(options.length===0) continue
+
+group.push(random(options))
+
+}
+
+}
+
+if(group.length<5)continue
 
 if(document.getElementById("avoidDuplicateDPS").checked){
 
-const dpsSpecs=group.filter(g=>g.role==="dps").map(g=>g.spec)
+const dps=group.filter(g=>g.role==="dps" && !g.pug).map(g=>g.spec)
 
-if(new Set(dpsSpecs).size!==dpsSpecs.length)continue
+if(new Set(dps).size!==dps.length)continue
 
 }
 
@@ -439,7 +476,13 @@ if(!group.some(g=>g.brez))continue
 }
 
 document.getElementById("result").innerHTML=
-group.map((g,i)=>`Slot ${i+1}: <span style="color:${classColors[g.class]}">${g.class}</span> <span class="${g.role}">${g.spec}</span>`).join("<br>")
+group.map((g,i)=>{
+
+if(g.pug) return `Slot ${i+1}: PUG <span class="${g.role}">${g.role.toUpperCase()}</span>`
+
+return `Slot ${i+1}: <span style="color:${classColors[g.class]}">${g.class}</span> <span class="${g.role}">${g.spec}</span>`
+
+}).join("<br>")
 
 return
 
