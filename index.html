@@ -13,6 +13,10 @@ color:#eee;
 margin:20px;
 }
 
+#topControls{
+margin-bottom:12px; /* gap between top tickboxes and slots */
+}
+
 .slot{
 border:1px solid #444;
 margin-bottom:10px;
@@ -63,12 +67,14 @@ font-size:18px;
 
 <h1>WoW Group Randomizer</h1>
 
+<div id="topControls">
 <label><input type="checkbox" id="tankNonPugRequired"> Tank must be non-PUG</label><br>
 <label><input type="checkbox" id="healerNonPugRequired"> Healer must be non-PUG</label><br>
 
 <label><input type="checkbox" id="lustRequired"> Require Lust</label><br>
 <label><input type="checkbox" id="brezRequired"> Require Battle Rez</label><br>
 <label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label>
+</div>
 
 <div id="slots"></div>
 
@@ -190,14 +196,13 @@ slot.innerHTML=`
 <div class="slotHeader" onclick="toggleSlot(${i})">Slot ${i+1} - New Member</div>
 <div class="slotBody">
 
-<label><input type="checkbox" class="pug" onchange="updateSlotTitle(${i})"> PUG</label>
+<label><input type="checkbox" class="pug" onchange="onPugToggle(${i})"> PUG</label>
 
 <br>
 <input placeholder="Preset name" class="presetName">
 <button onclick="savePreset(${i})">Save</button>
 
 <select class="presetSelect"></select>
-<button onclick="loadPreset(${i})">Load</button>
 
 <br><br>
 
@@ -205,6 +210,11 @@ slot.innerHTML=`
 `
 
 const body=slot.querySelector(".slotBody")
+
+// container for class rows so we can hide them when PUG is selected
+const classList=document.createElement("div")
+classList.className="classList"
+body.appendChild(classList)
 
 Object.keys(classes).forEach(cls=>{
 
@@ -242,7 +252,7 @@ ${specHTML}
 </span>
 `
 
-body.appendChild(row)
+classList.appendChild(row)
 
 const classBox=row.querySelector(".classTick")
 const specSpan=row.querySelector(".specs")
@@ -268,11 +278,35 @@ container.appendChild(slot)
 
 updatePresetDropdown(i)
 
+// ensure initial pug state hides classList if needed
+const pugBox = slot.querySelector(".pug")
+if(pugBox.checked){
+  classList.style.display = "none"
+  classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
+} else {
+  classList.style.display = "block"
+  classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
+}
+
 }
 
 }
 
 createSlots()
+
+function onPugToggle(i){
+const slot=document.querySelectorAll(".slot")[i]
+const pug=slot.querySelector(".pug").checked
+const classList=slot.querySelector(".classList")
+if(pug){
+  classList.style.display="none"
+  classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
+} else {
+  classList.style.display="block"
+  classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
+}
+updateSlotTitle(i)
+}
 
 function toggleSlot(i){
 
@@ -290,13 +324,13 @@ const header=slot.querySelector(".slotHeader")
 
 if(slot.querySelector(".pug").checked){
 
-header.textContent=`Slot ${i+1} - PUG`
+header.textContent=`PUG`
 
 }else{
 
 const name=slot.querySelector(".presetSelect").value
 
-header.textContent=name?`Slot ${i+1} - ${name.replace("wowSlotPreset_","")}`:`Slot ${i+1} - New Member`
+header.textContent=name?name.replace("wowSlotPreset_",""):`Slot ${i+1} - New Member`
 
 }
 
@@ -353,6 +387,16 @@ specs.forEach((s,j)=>s.checked=preset[index].specs[j])
 c.parentElement.nextElementSibling.style.display=c.checked?"inline":"none"
 
 })
+
+/* if pug was selected, ensure class list hidden */
+const classList = slot.querySelector(".classList")
+if(slot.querySelector(".pug").checked){
+  classList.style.display="none"
+  classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
+} else {
+  classList.style.display="block"
+  classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
+}
 
 updateSlotTitle(i)
 
