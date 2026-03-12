@@ -5,54 +5,54 @@
 <title>WoW Group Randomizer</title>
 
 <style>
-
 body{
-font-family:Arial;
-background:#111;
-color:#eee;
-margin:20px;
+  font-family:Arial;
+  background:#111;
+  color:#eee;
+  margin:20px;
 }
 
 #topControls{
-margin-bottom:12px; /* gap between top tickboxes and slots */
+  margin-bottom:12px; /* gap between top tickboxes and slots */
 }
 
 /* compact header row */
 .slot{
-border:1px solid #444;
-margin-bottom:10px;
+  border:1px solid #444;
+  margin-bottom:10px;
 }
 
 .slotHeader{
-background:#222;
-padding:6px;
-font-weight:bold;
-display:flex;
-align-items:center;
-gap:8px;
+  background:#222;
+  padding:6px;
+  font-weight:bold;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer; /* whole bar toggles */
 }
 
 .slotHeader .slotTitle{
-min-width:140px;
-font-weight:700;
+  min-width:140px;
+  font-weight:700;
 }
 
 .slotBody{
-padding:10px;
-display:none; /* collapsed by default */
+  padding:10px;
+  display:none; /* collapsed by default */
 }
 
 .classRow{
-margin-bottom:6px;
+  margin-bottom:6px;
 }
 
 .specs{
-display:none;
-margin-left:10px;
+  display:none;
+  margin-left:10px;
 }
 
 .specs label{
-margin-right:8px;
+  margin-right:8px;
 }
 
 .tank{color:#4aa3ff;}
@@ -60,43 +60,43 @@ margin-right:8px;
 .dps{color:#ff6b6b;}
 
 button{
-padding:4px 10px;
-margin-left:4px;
+  padding:4px 10px;
+  margin-left:4px;
 }
 
 .result{
-margin-top:25px;
-font-size:18px;
+  margin-top:25px;
+  font-size:18px;
 }
 
 .header-controls{
-display:flex;
-align-items:center;
-gap:6px;
-flex-wrap:wrap;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
 }
 
 /* ensure select and inputs are compact in header */
 .slotHeader input[type="text"],
 .slotHeader select{
-padding:4px;
-font-size:13px;
-background:#222;
-color:#eee;
-border:1px solid #555;
+  padding:4px;
+  font-size:13px;
+  background:#222;
+  color:#eee;
+  border:1px solid #555;
 }
 
 .slotHeader label{
-cursor:pointer;
+  cursor:pointer;
 }
 
 .updateToggle{
-color:#6cf;
-cursor:pointer;
-text-decoration:underline;
-font-size:13px;
+  color:#6cf;
+  cursor:default;
+  text-decoration:underline;
+  font-size:13px;
+  margin-left:6px;
 }
-
 </style>
 </head>
 <body>
@@ -104,12 +104,12 @@ font-size:13px;
 <h1>WoW Group Randomizer</h1>
 
 <div id="topControls">
-<label><input type="checkbox" id="tankNonPugRequired"> Tank must be non-PUG</label><br>
-<label><input type="checkbox" id="healerNonPugRequired"> Healer must be non-PUG</label><br>
+  <label><input type="checkbox" id="tankNonPugRequired"> Tank must be non-PUG</label><br>
+  <label><input type="checkbox" id="healerNonPugRequired"> Healer must be non-PUG</label><br>
 
-<label><input type="checkbox" id="lustRequired"> Require Lust</label><br>
-<label><input type="checkbox" id="brezRequired"> Require Battle Rez</label><br>
-<label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label>
+  <label><input type="checkbox" id="lustRequired"> Require Lust</label><br>
+  <label><input type="checkbox" id="brezRequired"> Require Battle Rez</label><br>
+  <label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label>
 </div>
 
 <div id="slots"></div>
@@ -119,558 +119,424 @@ font-size:13px;
 <div class="result" id="result"></div>
 
 <script>
-
 const classColors={
-Warrior:"#C79C6E",
-Paladin:"#F58CBA",
-Hunter:"#ABD473",
-Rogue:"#FFF569",
-Priest:"#FFFFFF",
-DeathKnight:"#C41F3B",
-Shaman:"#0070DE",
-Mage:"#69CCF0",
-Warlock:"#9482C9",
-Monk:"#00FF96",
-Druid:"#FF7D0A",
-DemonHunter:"#A330C9",
-Evoker:"#33937F"
+  Warrior:"#C79C6E",
+  Paladin:"#F58CBA",
+  Hunter:"#ABD473",
+  Rogue:"#FFF569",
+  Priest:"#FFFFFF",
+  DeathKnight:"#C41F3B",
+  Shaman:"#0070DE",
+  Mage:"#69CCF0",
+  Warlock:"#9482C9",
+  Monk:"#00FF96",
+  Druid:"#FF7D0A",
+  DemonHunter:"#A330C9",
+  Evoker:"#33937F"
 }
 
 const classes={
-
-Warrior:[
-{spec:"Protection",role:"tank"},
-{spec:"Arms",role:"dps"},
-{spec:"Fury",role:"dps"}
-],
-
-Paladin:[
-{spec:"Protection",role:"tank"},
-{spec:"Holy",role:"healer"},
-{spec:"Retribution",role:"dps",brez:true}
-],
-
-Druid:[
-{spec:"Guardian",role:"tank",brez:true},
-{spec:"Restoration",role:"healer",brez:true},
-{spec:"Balance",role:"dps",brez:true},
-{spec:"Feral",role:"dps",brez:true}
-],
-
-Shaman:[
-{spec:"Restoration",role:"healer",lust:true},
-{spec:"Elemental",role:"dps",lust:true},
-{spec:"Enhancement",role:"dps",lust:true}
-],
-
-Mage:[
-{spec:"Arcane",role:"dps",lust:true},
-{spec:"Fire",role:"dps",lust:true},
-{spec:"Frost",role:"dps",lust:true}
-],
-
-Priest:[
-{spec:"Holy",role:"healer"},
-{spec:"Discipline",role:"healer"},
-{spec:"Shadow",role:"dps"}
-],
-
-Monk:[
-{spec:"Brewmaster",role:"tank"},
-{spec:"Mistweaver",role:"healer"},
-{spec:"Windwalker",role:"dps"}
-],
-
-DemonHunter:[
-{spec:"Vengeance",role:"tank"},
-{spec:"Havoc",role:"dps"},
-{spec:"Devourer",role:"dps"}
-],
-
-DeathKnight:[
-{spec:"Blood",role:"tank",brez:true},
-{spec:"Frost",role:"dps",brez:true},
-{spec:"Unholy",role:"dps",brez:true}
-],
-
-Evoker:[
-{spec:"Preservation",role:"healer"},
-{spec:"Devastation",role:"dps",lust:true},
-{spec:"Augmentation",role:"dps",lust:true}
-],
-
-Hunter:[
-{spec:"Beast Mastery",role:"dps",lust:true},
-{spec:"Marksman",role:"dps",lust:true},
-{spec:"Survival",role:"dps",lust:true}
-],
-
-Warlock:[
-{spec:"Affliction",role:"dps",brez:true},
-{spec:"Demonology",role:"dps",brez:true},
-{spec:"Destruction",role:"dps",brez:true}
-],
-
-Rogue:[
-{spec:"Assassination",role:"dps"},
-{spec:"Outlaw",role:"dps"},
-{spec:"Subtlety",role:"dps"}
-]
-
+  Warrior:[
+    {spec:"Protection",role:"tank"},
+    {spec:"Arms",role:"dps"},
+    {spec:"Fury",role:"dps"}
+  ],
+  Paladin:[
+    {spec:"Protection",role:"tank"},
+    {spec:"Holy",role:"healer"},
+    {spec:"Retribution",role:"dps",brez:true}
+  ],
+  Druid:[
+    {spec:"Guardian",role:"tank",brez:true},
+    {spec:"Restoration",role:"healer",brez:true},
+    {spec:"Balance",role:"dps",brez:true},
+    {spec:"Feral",role:"dps",brez:true}
+  ],
+  Shaman:[
+    {spec:"Restoration",role:"healer",lust:true},
+    {spec:"Elemental",role:"dps",lust:true},
+    {spec:"Enhancement",role:"dps",lust:true}
+  ],
+  Mage:[
+    {spec:"Arcane",role:"dps",lust:true},
+    {spec:"Fire",role:"dps",lust:true},
+    {spec:"Frost",role:"dps",lust:true}
+  ],
+  Priest:[
+    {spec:"Holy",role:"healer"},
+    {spec:"Discipline",role:"healer"},
+    {spec:"Shadow",role:"dps"}
+  ],
+  Monk:[
+    {spec:"Brewmaster",role:"tank"},
+    {spec:"Mistweaver",role:"healer"},
+    {spec:"Windwalker",role:"dps"}
+  ],
+  DemonHunter:[
+    {spec:"Vengeance",role:"tank"},
+    {spec:"Havoc",role:"dps"},
+    {spec:"Devourer",role:"dps"}
+  ],
+  DeathKnight:[
+    {spec:"Blood",role:"tank",brez:true},
+    {spec:"Frost",role:"dps",brez:true},
+    {spec:"Unholy",role:"dps",brez:true}
+  ],
+  Evoker:[
+    {spec:"Preservation",role:"healer"},
+    {spec:"Devastation",role:"dps",lust:true},
+    {spec:"Augmentation",role:"dps",lust:true}
+  ],
+  Hunter:[
+    {spec:"Beast Mastery",role:"dps",lust:true},
+    {spec:"Marksman",role:"dps",lust:true},
+    {spec:"Survival",role:"dps",lust:true}
+  ],
+  Warlock:[
+    {spec:"Affliction",role:"dps",brez:true},
+    {spec:"Demonology",role:"dps",brez:true},
+    {spec:"Destruction",role:"dps",brez:true}
+  ],
+  Rogue:[
+    {spec:"Assassination",role:"dps"},
+    {spec:"Outlaw",role:"dps"},
+    {spec:"Subtlety",role:"dps"}
+  ]
 }
 
 function createSlots(){
+  const container=document.getElementById("slots")
 
-const container=document.getElementById("slots")
+  for(let i=0;i<5;i++){
+    const slot=document.createElement("div")
+    slot.className="slot"
 
-for(let i=0;i<5;i++){
+    // header toggles the slot body. controls stopPropagation where appropriate.
+    slot.innerHTML=`
+      <div class="slotHeader" onclick="toggleSlot(${i})">
+        <span class="slotTitle">Slot ${i+1}</span>
+        <div class="header-controls" onclick="event.stopPropagation()">
+          <label style="margin-right:6px">
+            <input type="checkbox" class="pug" onchange="onPugToggle(${i})"> PUG
+          </label>
+          <select class="presetSelect" onchange="presetSelected(${i})"></select>
+          <span class="updateToggle">update</span>
+          <input placeholder="Preset name" class="presetName">
+          <button onclick="savePreset(${i});">Save</button>
+        </div>
+      </div>
+      <div class="slotBody">
+        <div class="classList"></div>
+      </div>
+    `
 
-const slot=document.createElement("div")
-slot.className="slot"
+    const body=slot.querySelector(".slotBody")
+    const classList=slot.querySelector(".classList")
 
-slot.innerHTML=`
-<div class="slotHeader">
-  <span class="slotTitle">Slot ${i+1}</span>
-  <div class="header-controls" onclick="event.stopPropagation()">
-    <label style="margin-right:6px"><input type="checkbox" class="pug" onchange="onPugToggle(${i})" onclick="event.stopPropagation()"> PUG</label>
-    <input placeholder="Preset name" class="presetName" onclick="event.stopPropagation()">
-    <button onclick="savePreset(${i}); event.stopPropagation();">Save</button>
-    <select class="presetSelect" onchange="presetSelected(${i})" onclick="event.stopPropagation()"></select>
-    <span class="updateToggle" onclick="toggleSlot(${i}); event.stopPropagation()">update</span>
-  </div>
-</div>
-<div class="slotBody">
+    Object.keys(classes).forEach(cls=>{
+      const row=document.createElement("div")
+      row.className="classRow"
 
-<br>
+      let specHTML=""
+      classes[cls].forEach(spec=>{
+        specHTML+=`
+          <label class="specLabel ${spec.role}">
+            <input type="checkbox"
+              class="specTick"
+              data-class="${cls}"
+              data-spec="${spec.spec}"
+              data-role="${spec.role}"
+              data-lust="${spec.lust||false}"
+              data-brez="${spec.brez||false}">
+            ${spec.spec}
+          </label>
+        `
+      })
 
-</div>
-`
+      row.innerHTML=`
+        <label style="color:${classColors[cls]}">
+          <input type="checkbox" class="classTick">
+          ${cls}
+        </label>
+        <span class="specs">${specHTML}</span>
+      `
+      classList.appendChild(row)
 
-const body=slot.querySelector(".slotBody")
+      const classBox=row.querySelector(".classTick")
+      const specSpan=row.querySelector(".specs")
 
-// container for class rows so we can hide them when PUG is selected
-const classList=document.createElement("div")
-classList.className="classList"
-body.appendChild(classList)
+      // start unchecked and specs hidden
+      classBox.checked = false
+      specSpan.style.display = "none"
+      row.querySelectorAll(".specTick").forEach(s=>s.checked = false)
 
-Object.keys(classes).forEach(cls=>{
+      classBox.addEventListener("change",()=>{
+        if(classBox.checked){
+          specSpan.style.display="inline"
+          specSpan.querySelectorAll("input").forEach(s=>s.checked=true)
+        }else{
+          specSpan.style.display="none"
+        }
+      })
+    })
 
-const row=document.createElement("div")
-row.className="classRow"
+    container.appendChild(slot)
+    updatePresetDropdown(i)
 
-let specHTML=""
+    // initial pug state handling
+    const pugBox = slot.querySelector(".pug")
+    if(pugBox.checked){
+      classList.style.display = "none"
+      classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
+    } else {
+      classList.style.display = "block"
+      classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
+    }
 
-classes[cls].forEach(spec=>{
+    // keep collapsed by default
+    slot.querySelector(".slotBody").style.display = "none"
 
-specHTML+=`
-<label class="specLabel ${spec.role}">
-  <input type="checkbox"
-  class="specTick"
-  data-class="${cls}"
-  data-spec="${spec.spec}"
-  data-role="${spec.role}"
-  data-lust="${spec.lust||false}"
-  data-brez="${spec.brez||false}">
-  ${spec.spec}
-</label>
-`
-
-})
-
-row.innerHTML=`
-<label style="color:${classColors[cls]}">
-  <input type="checkbox" class="classTick">
-  ${cls}
-</label>
-
-<span class="specs">
-  ${specHTML}
-</span>
-`
-
-classList.appendChild(row)
-
-const classBox=row.querySelector(".classTick")
-const specSpan=row.querySelector(".specs")
-
-// start with all classes/specs hidden/unticked by default
-classBox.checked = false
-specSpan.style.display = "none"
-row.querySelectorAll(".specTick").forEach(s=>s.checked = false)
-
-classBox.addEventListener("change",()=>{
-
-if(classBox.checked){
-
-specSpan.style.display="inline"
-specSpan.querySelectorAll("input").forEach(s=>s.checked=true)
-
-}else{
-
-specSpan.style.display="none"
-
-}
-
-})
-
-})
-
-container.appendChild(slot)
-
-updatePresetDropdown(i)
-
-// ensure initial pug state hides classList if needed
-const pugBox = slot.querySelector(".pug")
-if(pugBox.checked){
-  classList.style.display = "none"
-  classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
-} else {
-  classList.style.display = "block"
-  classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
-}
-
-// collapsed by default: already set via CSS .slotBody display:none
-
-// set initial title
-updateSlotTitle(i)
-
-}
-
+    updateSlotTitle(i)
+  }
 }
 
 createSlots()
 
 function presetSelected(i){
-const slot=document.querySelectorAll(".slot")[i]
-const sel=slot.querySelector(".presetSelect")
-const nameInput=slot.querySelector(".presetName")
+  const slot=document.querySelectorAll(".slot")[i]
+  const sel=slot.querySelector(".presetSelect")
+  const nameInput=slot.querySelector(".presetName")
 
-// put selected preset name into text box (remove prefix)
-if(sel.value){
-  nameInput.value = sel.value.replace("wowSlotPreset_","")
-} else {
-  nameInput.value = ""
-}
+  // put selected preset name into text box (remove prefix)
+  if(sel.value){
+    nameInput.value = sel.value.replace("wowSlotPreset_","")
+  } else {
+    nameInput.value = ""
+  }
 
-// load immediately
-loadPreset(i)
-updateSlotTitle(i)
+  // load immediately
+  loadPreset(i)
+  updateSlotTitle(i)
 }
 
 function onPugToggle(i){
-const slot=document.querySelectorAll(".slot")[i]
-const pug=slot.querySelector(".pug").checked
-const classList=slot.querySelector(".classList")
-if(pug){
-  classList.style.display="none"
-  classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
-} else {
-  classList.style.display="block"
-  classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
-}
-updateSlotTitle(i)
+  const slot=document.querySelectorAll(".slot")[i]
+  const pug=slot.querySelector(".pug").checked
+  const classList=slot.querySelector(".classList")
+  if(pug){
+    classList.style.display="none"
+    classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
+  } else {
+    classList.style.display="block"
+    classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
+  }
+  updateSlotTitle(i)
 }
 
 function toggleSlot(i){
-
-const slot=document.querySelectorAll(".slot")[i]
-const body=slot.querySelector(".slotBody")
-
-body.style.display = body.style.display==="none"?"block":"none"
-
+  const slot=document.querySelectorAll(".slot")[i]
+  const body=slot.querySelector(".slotBody")
+  body.style.display = body.style.display==="none"?"block":"none"
 }
 
 function updateSlotTitle(i){
-
-const slot=document.querySelectorAll(".slot")[i]
-const header=slot.querySelector(".slotHeader")
-const titleEl=header.querySelector(".slotTitle")
-
-if(slot.querySelector(".pug").checked){
-
-titleEl.textContent=`PUG`
-
-}else{
-
-const name=slot.querySelector(".presetSelect").value
-
-titleEl.textContent=name?name.replace("wowSlotPreset_",""):`Slot ${i+1}`
-
-}
-
+  const slot=document.querySelectorAll(".slot")[i]
+  const titleEl=slot.querySelector(".slotTitle")
+  if(slot.querySelector(".pug").checked){
+    titleEl.textContent=`PUG`
+  }else{
+    const name=slot.querySelector(".presetSelect").value
+    titleEl.textContent=name?name.replace("wowSlotPreset_",""):`Slot ${i+1}`
+  }
 }
 
 function savePreset(i){
+  const slot=document.querySelectorAll(".slot")[i]
+  const name=slot.querySelector(".presetName").value
+  if(!name) return
 
-const slot=document.querySelectorAll(".slot")[i]
-const name=slot.querySelector(".presetName").value
+  let preset=[]
+  slot.querySelectorAll(".classRow").forEach(row=>{
+    const classTick = row.querySelector(".classTick")
+    const specInputs = [...row.querySelectorAll(".specTick")]
+    preset.push({
+      classEnabled: classTick.checked,
+      // we don't rely on classVisible; when loading we will show only checked specs
+      specs: specInputs.map(s=>({checked:s.checked}))
+    })
+  })
 
-if(!name)return
-
-let preset=[]
-
-// Save the visibility and selected state of classes/specs
-slot.querySelectorAll(".classRow").forEach(row=>{
-
-const classTick = row.querySelector(".classTick")
-const specInputs = [...row.querySelectorAll(".specTick")]
-
-preset.push({
-classEnabled: classTick.checked,
-classVisible: row.style.display!=="none",
-specs: specInputs.map(s=>({checked:s.checked, visible: s.parentElement.style.display!=="none"}))
-})
-
-})
-
-localStorage.setItem("wowSlotPreset_"+name,JSON.stringify(preset))
-
-updatePresetDropdown(i)
-
-// set dropdown to saved value
-slot.querySelector(".presetSelect").value="wowSlotPreset_"+name
-
-// update title
-updateSlotTitle(i)
-
+  localStorage.setItem("wowSlotPreset_"+name,JSON.stringify(preset))
+  updatePresetDropdown(i)
+  slot.querySelector(".presetSelect").value="wowSlotPreset_"+name
+  updateSlotTitle(i)
 }
 
 function loadPreset(i){
+  const slot=document.querySelectorAll(".slot")[i]
+  const key=slot.querySelector(".presetSelect").value
+  if(!key) return
+  const raw = localStorage.getItem(key)
+  if(!raw) return
+  const preset=JSON.parse(raw)
 
-const slot=document.querySelectorAll(".slot")[i]
-const key=slot.querySelector(".presetSelect").value
+  const classRows = slot.querySelectorAll(".classRow")
+  classRows.forEach((row, index)=>{
+    const entry = preset[index]
+    // default: hide row and uncheck everything
+    const classTick = row.querySelector(".classTick")
+    const specInputs = [...row.querySelectorAll(".specTick")]
 
-if(!key) return // nothing to load for "New" or empty selection
+    if(!entry){
+      classTick.checked = false
+      row.style.display = "none"
+      specInputs.forEach(s=>{
+        s.checked=false
+        s.parentElement.style.display = "none"
+      })
+      return
+    }
 
-const raw = localStorage.getItem(key)
-if(!raw) return
+    // Set class checkbox state based on saved classEnabled
+    classTick.checked = !!entry.classEnabled
 
-const preset=JSON.parse(raw)
+    // For each spec: set checked based on saved checked, show only if checked
+    specInputs.forEach((s, si)=>{
+      const specEntry = entry.specs && entry.specs[si]
+      s.checked = !!(specEntry && specEntry.checked)
+      s.parentElement.style.display = s.checked ? "" : "none"
+    })
 
-// ensure classList present
-const classRows = slot.querySelectorAll(".classRow")
+    // Show the row only if classTick checked and at least one spec visible
+    const anySpecVisible = specInputs.some(s=>s.parentElement.style.display !== "none")
+    row.style.display = (classTick.checked && anySpecVisible) ? "block" : "none"
+    // set specs container visibility accordingly
+    row.querySelector(".specs").style.display = (classTick.checked && anySpecVisible) ? "inline" : "none"
+  })
 
-// apply preset: only show the tickboxes that were selected/visible in the preset
-classRows.forEach((row, index)=>{
+  // if pug is checked, hide entire class list
+  const classList = slot.querySelector(".classList")
+  if(slot.querySelector(".pug").checked){
+    classList.style.display="none"
+    classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
+  } else {
+    classList.style.display="block"
+    classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
+  }
 
-const entry = preset[index]
+  // set name input to selected preset name
+  slot.querySelector(".presetName").value = key.replace("wowSlotPreset_","")
 
-// If preset missing for some reason, skip
-if(!entry) return
-
-// Set class checkbox state
-const classTick = row.querySelector(".classTick")
-classTick.checked = !!entry.classEnabled
-
-// Set row visibility: if preset says it was hidden (classVisible false), hide the whole row
-row.style.display = entry.classVisible === false ? "none" : "block"
-
-// For specs: iterate and apply checked + visibility per saved spec entry
-const specInputs = [...row.querySelectorAll(".specTick")]
-specInputs.forEach((s, si)=>{
-
-const specEntry = entry.specs && entry.specs[si]
-
-if(!specEntry){
-  // if missing, default to unchecked and visible
-  s.checked = false
-  s.parentElement.style.display = ""
-  return
-}
-
-s.checked = !!specEntry.checked
-s.parentElement.style.display = specEntry.visible === false ? "none" : ""
-
-})
-
-// ensure the specs container shows only if classTick checked AND some visible specs
-const specSpan = row.querySelector(".specs")
-const anySpecVisible = [...specSpan.querySelectorAll(".specLabel")].some(lbl => lbl.style.display !== "none")
-specSpan.style.display = (classTick.checked && anySpecVisible) ? "inline" : "none"
-
-})
-
-// if pug was selected, ensure class list hidden
-const classList = slot.querySelector(".classList")
-if(slot.querySelector(".pug").checked){
-  classList.style.display="none"
-  classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
-} else {
-  classList.style.display="block"
-  classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
-}
-
-// set the name input to selected preset name
-slot.querySelector(".presetName").value = key.replace("wowSlotPreset_","")
-
-// collapse body (presets load but keep header compact)
-slot.querySelector(".slotBody").style.display = "none"
-
-updateSlotTitle(i)
-
+  // keep collapsed
+  slot.querySelector(".slotBody").style.display = "none"
+  updateSlotTitle(i)
 }
 
 function updatePresetDropdown(i){
+  const slot=document.querySelectorAll(".slot")[i]
+  const select=slot.querySelector(".presetSelect")
+  const prevValue = select.value || ""
+  select.innerHTML=""
+  const newOpt=document.createElement("option")
+  newOpt.value=""
+  newOpt.text="New"
+  select.appendChild(newOpt)
 
-const slot=document.querySelectorAll(".slot")[i]
-const select=slot.querySelector(".presetSelect")
+  for(let j=0;j<localStorage.length;j++){
+    const key=localStorage.key(j)
+    if(key.startsWith("wowSlotPreset_")){
+      const opt=document.createElement("option")
+      opt.value=key
+      opt.text=key.replace("wowSlotPreset_","")
+      select.appendChild(opt)
+    }
+  }
 
-const prevValue = select.value || ""
-
-// build dropdown with default "New" option first
-select.innerHTML=""
-
-const newOpt=document.createElement("option")
-newOpt.value=""
-newOpt.text="New"
-select.appendChild(newOpt)
-
-for(let j=0;j<localStorage.length;j++){
-
-const key=localStorage.key(j)
-
-if(key.startsWith("wowSlotPreset_")){
-
-const opt=document.createElement("option")
-opt.value=key
-opt.text=key.replace("wowSlotPreset_","")
-
-select.appendChild(opt)
-
+  select.value = prevValue && [...select.options].some(o=>o.value===prevValue) ? prevValue : ""
 }
 
-}
-
-// restore previous selection if still present
-select.value = prevValue && [...select.options].some(o=>o.value===prevValue) ? prevValue : ""
-
-// onchange handled by select element's onchange attribute in header (presetSelected)
-
-}
-
-function random(arr){
-return arr[Math.floor(Math.random()*arr.length)]
-}
+function random(arr){ return arr[Math.floor(Math.random()*arr.length)] }
 
 function generate(){
+  const slots=[...document.querySelectorAll(".slot")]
+  let slotChoices=[]
 
-const slots=[...document.querySelectorAll(".slot")]
-let slotChoices=[]
+  slots.forEach(slot=>{
+    if(slot.querySelector(".pug").checked){
+      slotChoices.push("pug")
+    } else {
+      let specs=[]
+      slot.querySelectorAll(".classRow").forEach(row=>{
+        if(row.style.display==="none") return
+        const classBox = row.querySelector(".classTick")
+        if(!classBox.checked) return
+        row.querySelectorAll(".specTick").forEach(spec=>{
+          if(spec.checked){
+            specs.push({
+              class:spec.dataset.class,
+              spec:spec.dataset.spec,
+              role:spec.dataset.role,
+              lust:spec.dataset.lust==="true",
+              brez:spec.dataset.brez==="true"
+            })
+          }
+        })
+      })
+      // if no user choices treat as PUG
+      if(specs.length===0){
+        slotChoices.push("pug")
+      } else {
+        slotChoices.push(specs)
+      }
+    }
+  })
 
-slots.forEach(slot=>{
+  for(let attempt=0;attempt<10000;attempt++){
+    let group=[]
+    let roles=["tank","healer","dps","dps","dps"]
+    for(let i=roles.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1)); [roles[i],roles[j]]=[roles[j],roles[i]]
+    }
 
-if(slot.querySelector(".pug").checked){
+    for(let i=0;i<5;i++){
+      if(slotChoices[i]==="pug"){
+        group.push({pug:true,role:roles[i]})
+      } else {
+        const options=slotChoices[i].filter(o=>o.role===roles[i])
+        if(options.length===0) continue
+        group.push(random(options))
+      }
+    }
 
-slotChoices.push("pug")
+    if(group.length<5) continue
 
-}else{
+    if(document.getElementById("tankNonPugRequired").checked){
+      if(group.some(g=>g.role==="tank" && g.pug)) continue
+    }
+    if(document.getElementById("healerNonPugRequired").checked){
+      if(group.some(g=>g.role==="healer" && g.pug)) continue
+    }
+    if(document.getElementById("avoidDuplicateDPS").checked){
+      const dps=group.filter(g=>g.role==="dps" && !g.pug).map(g=>g.spec)
+      if(new Set(dps).size!==dps.length) continue
+    }
+    if(document.getElementById("lustRequired").checked){
+      if(!group.some(g=>g.lust)) continue
+    }
+    if(document.getElementById("brezRequired").checked){
+      if(!group.some(g=>g.brez)) continue
+    }
 
-let specs=[]
+    document.getElementById("result").innerHTML =
+      group.map((g,i)=>{
+        if(g.pug) return `Slot ${i+1}: PUG <span class="${g.role}">${g.role.toUpperCase()}</span>`
+        return `Slot ${i+1}: <span style="color:${classColors[g.class]}">${g.class}</span> <span class="${g.role}">${g.spec}</span>`
+      }).join("<br>")
+    return
+  }
 
-slot.querySelectorAll(".classRow").forEach(row=>{
-
-// skip rows that are hidden (user chose to hide them via preset)
-if(row.style.display==="none") return
-
-const classBox = row.querySelector(".classTick")
-if(!classBox.checked) return
-
-row.querySelectorAll(".specTick").forEach(spec=>{
-
-if(spec.checked){
-
-specs.push({
-class:spec.dataset.class,
-spec:spec.dataset.spec,
-role:spec.dataset.role,
-lust:spec.dataset.lust==="true",
-brez:spec.dataset.brez==="true"
-})
-
+  document.getElementById("result").innerHTML="No valid group found."
 }
-
-})
-
-})
-
-slotChoices.push(specs)
-
-}
-
-})
-
-for(let attempt=0;attempt<10000;attempt++){
-
-let group=[]
-
-let roles=["tank","healer","dps","dps","dps"]
-
-for(let i=roles.length-1;i>0;i--){
-const j=Math.floor(Math.random()*(i+1))
-;[roles[i],roles[j]]=[roles[j],roles[i]]
-}
-
-for(let i=0;i<5;i++){
-
-if(slotChoices[i]==="pug"){
-
-group.push({pug:true,role:roles[i]})
-
-}else{
-
-const options=slotChoices[i].filter(o=>o.role===roles[i])
-
-if(options.length===0) continue
-
-group.push(random(options))
-
-}
-
-}
-
-if(group.length<5)continue
-
-if(document.getElementById("tankNonPugRequired").checked){
-  if(group.some(g=>g.role==="tank" && g.pug)) continue
-}
-
-if(document.getElementById("healerNonPugRequired").checked){
-  if(group.some(g=>g.role==="healer" && g.pug)) continue
-}
-
-if(document.getElementById("avoidDuplicateDPS").checked){
-
-const dps=group.filter(g=>g.role==="dps" && !g.pug).map(g=>g.spec)
-
-if(new Set(dps).size!==dps.length)continue
-
-}
-
-if(document.getElementById("lustRequired").checked){
-if(!group.some(g=>g.lust))continue
-}
-
-if(document.getElementById("brezRequired").checked){
-if(!group.some(g=>g.brez))continue
-}
-
-document.getElementById("result").innerHTML=
-group.map((g,i)=>{
-
-if(g.pug) return `Slot ${i+1}: PUG <span class="${g.role}">${g.role.toUpperCase()}</span>`
-
-return `Slot ${i+1}: <span style="color:${classColors[g.class]}">${g.class}</span> <span class="${g.role}">${g.spec}</span>`
-
-}).join("<br>")
-
-return
-
-}
-
-document.getElementById("result").innerHTML="No valid group found."
-
-}
-
 </script>
 
 </body>
