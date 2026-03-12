@@ -63,11 +63,12 @@ font-size:18px;
 
 <h1>WoW Group Randomizer</h1>
 
+<label><input type="checkbox" id="tankNonPugRequired"> Tank must be non-PUG</label><br>
+<label><input type="checkbox" id="healerNonPugRequired"> Healer must be non-PUG</label><br>
+
 <label><input type="checkbox" id="lustRequired"> Require Lust</label><br>
 <label><input type="checkbox" id="brezRequired"> Require Battle Rez</label><br>
 <label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label>
-
-<h2>Group Slots</h2>
 
 <div id="slots"></div>
 
@@ -483,6 +484,14 @@ group.push(random(options))
 }
 
 if(group.length<5)continue
+
+if(document.getElementById("tankNonPugRequired").checked){
+  if(group.some(g=>g.role==="tank" && g.pug)) continue
+}
+
+if(document.getElementById("healerNonPugRequired").checked){
+  if(group.some(g=>g.role==="healer" && g.pug)) continue
+}
 
 if(document.getElementById("avoidDuplicateDPS").checked){
 
