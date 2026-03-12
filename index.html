@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -20,13 +19,17 @@ body{
     margin-bottom:15px;
 }
 
-.classBlock{
+.classRow{
+    margin-bottom:6px;
+}
+
+.specs{
+    display:none;
     margin-left:10px;
 }
 
-.specBlock{
-    margin-left:25px;
-    display:none;
+.specs label{
+    margin-right:8px;
 }
 
 button{
@@ -159,56 +162,58 @@ slot.innerHTML=`<b>Slot ${i+1}</b><br>
 
 Object.keys(classes).forEach(cls=>{
 
+const row=document.createElement("div")
+row.className="classRow"
+
 const classID=`slot${i}_${cls}`
 
-const classDiv=document.createElement("div")
-classDiv.className="classBlock"
-
-classDiv.innerHTML=`
-<label>
-<input type="checkbox" class="classTick" id="${classID}">
-${cls}
-</label>
-<div class="specBlock" id="${classID}_specs"></div>
-`
-
-slot.appendChild(classDiv)
-
-const specDiv=classDiv.querySelector(".specBlock")
+let specHTML=""
 
 classes[cls].forEach(spec=>{
 
-const specBox=document.createElement("div")
-
-specBox.innerHTML=`
+specHTML+=`
 <label>
-<input type="checkbox" class="specTick" checked
+<input type="checkbox"
+class="specTick"
+checked
 data-class="${cls}"
 data-spec="${spec.spec}"
 data-role="${spec.role}"
 data-lust="${spec.lust||false}"
 data-brez="${spec.brez||false}">
-${spec.spec} (${spec.role})
+${spec.spec}
 </label>
 `
 
-specDiv.appendChild(specBox)
-
 })
 
-const classCheckbox=classDiv.querySelector(".classTick")
+row.innerHTML=`
+<label>
+<input type="checkbox" class="classTick" id="${classID}">
+${cls}
+</label>
 
-classCheckbox.addEventListener("change",()=>{
+<span class="specs" id="${classID}_specs">
+${specHTML}
+</span>
+`
 
-if(classCheckbox.checked){
+slot.appendChild(row)
 
-specDiv.style.display="block"
+const classBox=row.querySelector(".classTick")
+const specSpan=row.querySelector(".specs")
 
-specDiv.querySelectorAll("input").forEach(s=>s.checked=true)
+classBox.addEventListener("change",()=>{
+
+if(classBox.checked){
+
+specSpan.style.display="inline"
+
+specSpan.querySelectorAll("input").forEach(s=>s.checked=true)
 
 }else{
 
-specDiv.style.display="none"
+specSpan.style.display="none"
 
 }
 
@@ -272,7 +277,7 @@ let group=[]
 
 for(let i=0;i<5;i++){
 
-if(slotChoices[i].length==0) continue
+if(slotChoices[i].length===0) continue
 
 group.push(random(slotChoices[i]))
 
@@ -309,4 +314,3 @@ document.getElementById("result").innerHTML="No valid group found."
 
 </body>
 </html>
-```
