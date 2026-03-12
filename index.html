@@ -26,7 +26,6 @@ margin-bottom:10px;
 .slotHeader{
 background:#222;
 padding:6px;
-cursor:pointer;
 font-weight:bold;
 display:flex;
 align-items:center;
@@ -89,6 +88,13 @@ border:1px solid #555;
 
 .slotHeader label{
 cursor:pointer;
+}
+
+.updateToggle{
+color:#6cf;
+cursor:pointer;
+text-decoration:underline;
+font-size:13px;
 }
 
 </style>
@@ -223,14 +229,14 @@ const slot=document.createElement("div")
 slot.className="slot"
 
 slot.innerHTML=`
-<div class="slotHeader" onclick="toggleSlot(${i})">
+<div class="slotHeader">
   <span class="slotTitle">Slot ${i+1}</span>
   <div class="header-controls" onclick="event.stopPropagation()">
     <label style="margin-right:6px"><input type="checkbox" class="pug" onchange="onPugToggle(${i})" onclick="event.stopPropagation()"> PUG</label>
     <input placeholder="Preset name" class="presetName" onclick="event.stopPropagation()">
     <button onclick="savePreset(${i}); event.stopPropagation();">Save</button>
-    <button onclick="showAllTickboxes(${i}); event.stopPropagation();">Update</button>
     <select class="presetSelect" onchange="presetSelected(${i})" onclick="event.stopPropagation()"></select>
+    <span class="updateToggle" onclick="toggleSlot(${i}); event.stopPropagation()">update</span>
   </div>
 </div>
 <div class="slotBody">
@@ -260,7 +266,6 @@ specHTML+=`
 <label class="specLabel ${spec.role}">
   <input type="checkbox"
   class="specTick"
-  checked
   data-class="${cls}"
   data-spec="${spec.spec}"
   data-role="${spec.role}"
@@ -274,7 +279,7 @@ specHTML+=`
 
 row.innerHTML=`
 <label style="color:${classColors[cls]}">
-  <input type="checkbox" class="classTick" checked>
+  <input type="checkbox" class="classTick">
   ${cls}
 </label>
 
@@ -287,6 +292,11 @@ classList.appendChild(row)
 
 const classBox=row.querySelector(".classTick")
 const specSpan=row.querySelector(".specs")
+
+// start with all classes/specs hidden/unticked by default
+classBox.checked = false
+specSpan.style.display = "none"
+row.querySelectorAll(".specTick").forEach(s=>s.checked = false)
 
 classBox.addEventListener("change",()=>{
 
@@ -462,8 +472,8 @@ specInputs.forEach((s, si)=>{
 const specEntry = entry.specs && entry.specs[si]
 
 if(!specEntry){
-  // if missing, default to checked true and visible
-  s.checked = true
+  // if missing, default to unchecked and visible
+  s.checked = false
   s.parentElement.style.display = ""
   return
 }
@@ -498,26 +508,6 @@ slot.querySelector(".slotBody").style.display = "none"
 
 updateSlotTitle(i)
 
-}
-
-function showAllTickboxes(i){
-const slot=document.querySelectorAll(".slot")[i]
-const classRows = slot.querySelectorAll(".classRow")
-
-classRows.forEach(row=>{
-  // show all rows and spec labels
-  row.style.display = "block"
-  row.querySelectorAll(".specLabel").forEach(lbl=>lbl.style.display = "")
-})
-
-// ensure classList visible if not pug
-const classList = slot.querySelector(".classList")
-if(!slot.querySelector(".pug").checked){
-  classList.style.display="block"
-  classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
-}
-
-slot.querySelector(".slotBody").style.display = "block"
 }
 
 function updatePresetDropdown(i){
