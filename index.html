@@ -32,6 +32,10 @@ body{
     margin-right:8px;
 }
 
+.tank{color:#4aa3ff;}
+.healer{color:#3ddc84;}
+.dps{color:#ff6b6b;}
+
 button{
     padding:10px 18px;
     font-size:16px;
@@ -65,7 +69,23 @@ button{
 
 <script>
 
-const classes = {
+const classColors={
+Warrior:"#C79C6E",
+Paladin:"#F58CBA",
+Hunter:"#ABD473",
+Rogue:"#FFF569",
+Priest:"#FFFFFF",
+DeathKnight:"#C41F3B",
+Shaman:"#0070DE",
+Mage:"#69CCF0",
+Warlock:"#9482C9",
+Monk:"#00FF96",
+Druid:"#FF7D0A",
+DemonHunter:"#A330C9",
+Evoker:"#33937F"
+}
+
+const classes={
 
 Warrior:[
 {spec:"Protection",role:"tank"},
@@ -172,7 +192,7 @@ let specHTML=""
 classes[cls].forEach(spec=>{
 
 specHTML+=`
-<label>
+<label class="${spec.role}">
 <input type="checkbox"
 class="specTick"
 checked
@@ -188,7 +208,7 @@ ${spec.spec}
 })
 
 row.innerHTML=`
-<label>
+<label style="color:${classColors[cls]}">
 <input type="checkbox" class="classTick" id="${classID}">
 ${cls}
 </label>
@@ -255,15 +275,32 @@ slotChoices.push(allSpecs)
 
 }else{
 
-const specs=[...slot.querySelectorAll(".specTick")]
-.filter(s=>s.checked)
-.map(s=>({
-class:s.dataset.class,
-spec:s.dataset.spec,
-role:s.dataset.role,
-lust:s.dataset.lust==="true",
-brez:s.dataset.brez==="true"
-}))
+let specs=[]
+
+slot.querySelectorAll(".classTick").forEach(classBox=>{
+
+if(classBox.checked){
+
+const specContainer=classBox.parentElement.nextElementSibling
+
+specContainer.querySelectorAll(".specTick").forEach(spec=>{
+if(spec.checked){
+
+specs.push({
+class:spec.dataset.class,
+spec:spec.dataset.spec,
+role:spec.dataset.role,
+lust:spec.dataset.lust==="true",
+brez:spec.dataset.brez==="true"
+})
+
+}
+
+})
+
+}
+
+})
 
 slotChoices.push(specs)
 
@@ -300,7 +337,7 @@ if(!group.some(g=>g.brez)) continue
 }
 
 document.getElementById("result").innerHTML=
-group.map((g,i)=>`Slot ${i+1}: ${g.class} ${g.spec}`).join("<br>")
+group.map((g,i)=>`Slot ${i+1}: <span style="color:${classColors[g.class]}">${g.class}</span> <span class="${g.role}">${g.spec}</span>`).join("<br>")
 
 return
 
