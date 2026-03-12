@@ -7,29 +7,29 @@
 <style>
 
 body{
-    font-family:Arial;
-    background:#111;
-    color:#eee;
-    margin:20px;
+font-family:Arial;
+background:#111;
+color:#eee;
+margin:20px;
 }
 
 .slot{
-    border:1px solid #444;
-    padding:10px;
-    margin-bottom:15px;
+border:1px solid #444;
+padding:10px;
+margin-bottom:15px;
 }
 
 .classRow{
-    margin-bottom:6px;
+margin-bottom:6px;
 }
 
 .specs{
-    display:none;
-    margin-left:10px;
+display:none;
+margin-left:10px;
 }
 
 .specs label{
-    margin-right:8px;
+margin-right:8px;
 }
 
 .tank{color:#4aa3ff;}
@@ -37,14 +37,18 @@ body{
 .dps{color:#ff6b6b;}
 
 button{
-    padding:10px 18px;
-    font-size:16px;
-    margin-top:20px;
+padding:6px 12px;
+margin-left:6px;
 }
 
 .result{
-    margin-top:25px;
-    font-size:18px;
+margin-top:25px;
+font-size:18px;
+}
+
+.pugOptions{
+display:none;
+margin-top:6px;
 }
 
 </style>
@@ -56,6 +60,7 @@ button{
 
 <label><input type="checkbox" id="lustRequired"> Require Lust</label><br>
 <label><input type="checkbox" id="brezRequired"> Require Battle Rez</label><br>
+<label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label><br>
 <label><input type="checkbox" id="tankNonPug"> Tank must be non-pug</label><br>
 <label><input type="checkbox" id="healerNonPug"> Healer must be non-pug</label>
 
@@ -132,7 +137,8 @@ Monk:[
 
 DemonHunter:[
 {spec:"Vengeance",role:"tank"},
-{spec:"Havoc",role:"dps"}
+{spec:"Havoc",role:"dps"},
+{spec:"Devourer",role:"dps"}
 ],
 
 DeathKnight:[
@@ -176,16 +182,30 @@ for(let i=0;i<5;i++){
 const slot=document.createElement("div")
 slot.className="slot"
 
-slot.innerHTML=`<b>Slot ${i+1}</b><br>
-<label><input type="checkbox" class="pug"> PUG (anything)</label><br><br>
+slot.innerHTML=`<b>Slot ${i+1}</b>
+<br>
+<label><input type="checkbox" class="pug"> PUG</label>
+
+<span class="pugOptions">
+Role:
+<label><input type="radio" name="pugRole${i}" value="tank">Tank</label>
+<label><input type="radio" name="pugRole${i}" value="healer">Healer</label>
+<label><input type="radio" name="pugRole${i}" value="dps" checked>DPS</label>
+</span>
+
+<br>
+<input placeholder="Preset name" class="presetName">
+<button onclick="savePreset(${i})">Save</button>
+<select class="presetSelect"></select>
+<button onclick="loadPreset(${i})">Load</button>
+
+<br><br>
 `
 
 Object.keys(classes).forEach(cls=>{
 
 const row=document.createElement("div")
 row.className="classRow"
-
-const classID=`slot${i}_${cls}`
 
 let specHTML=""
 
@@ -209,11 +229,11 @@ ${spec.spec}
 
 row.innerHTML=`
 <label style="color:${classColors[cls]}">
-<input type="checkbox" class="classTick" id="${classID}">
+<input type="checkbox" class="classTick">
 ${cls}
 </label>
 
-<span class="specs" id="${classID}_specs">
+<span class="specs">
 ${specHTML}
 </span>
 `
@@ -228,7 +248,6 @@ classBox.addEventListener("change",()=>{
 if(classBox.checked){
 
 specSpan.style.display="inline"
-
 specSpan.querySelectorAll("input").forEach(s=>s.checked=true)
 
 }else{
@@ -241,7 +260,16 @@ specSpan.style.display="none"
 
 })
 
+const pugBox=slot.querySelector(".pug")
+const pugOptions=slot.querySelector(".pugOptions")
+
+pugBox.addEventListener("change",()=>{
+pugOptions.style.display=pugBox.checked?"inline":"none"
+})
+
 container.appendChild(slot)
+
+updatePresetDropdown(i)
 
 }
 
@@ -253,25 +281,96 @@ function random(arr){
 return arr[Math.floor(Math.random()*arr.length)]
 }
 
+function savePreset(slotIndex){
+
+const slot=document.querySelectorAll(".slot")[slotIndex]
+
+const name=slot.querySelector(".presetName").value
+if(!name)return
+
+let preset=[]
+
+slot.querySelectorAll(".classTick").forEach((c,i)=>{
+
+preset.push({
+classEnabled:c.checked,
+specs:[...c.parentElement.nextElementSibling.querySelectorAll("input")].map(s=>s.checked)
+})
+
+})
+
+localStorage.setItem("wowSlotPreset_"+name,JSON.stringify(preset))
+
+updatePresetDropdown(slotIndex)
+
+}
+
+function loadPreset(slotIndex){
+
+const slot=document.querySelectorAll(".slot")[slotIndex]
+const select=slot.querySelector(".presetSelect")
+
+const preset=JSON.parse(localStorage.getItem(select.value))
+
+slot.querySelectorAll(".classTick").forEach((c,i)=>{
+
+c.checked=preset[i].classEnabled
+
+const specs=c.parentElement.nextElementSibling.querySelectorAll("input")
+
+specs.forEach((s,j)=>s.checked=preset[i].specs[j])
+
+c.parentElement.nextElementSibling.style.display=c.checked?"inline":"none"
+
+})
+
+}
+
+function updatePresetDropdown(slotIndex){
+
+const slot=document.querySelectorAll(".slot")[slotIndex]
+const select=slot.querySelector(".presetSelect")
+
+select.innerHTML=""
+
+for(let i=0;i<localStorage.length;i++){
+
+const key=localStorage.key(i)
+
+if(key.startsWith("wowSlotPreset_")){
+
+const opt=document.createElement("option")
+opt.value=key
+opt.text=key.replace("wowSlotPreset_","")
+
+select.appendChild(opt)
+
+}
+
+}
+
+}
+
 function generate(){
 
 const slots=[...document.querySelectorAll(".slot")]
-
 let slotChoices=[]
 
-slots.forEach(slot=>{
+slots.forEach((slot,i)=>{
 
 if(slot.querySelector(".pug").checked){
 
-let allSpecs=[]
+const role=slot.querySelector(`input[name="pugRole${i}"]:checked`).value
+
+let pool=[]
 
 Object.keys(classes).forEach(cls=>{
 classes[cls].forEach(s=>{
-allSpecs.push({...s,class:cls})
+if(s.role===role)pool.push({...s,class:cls})
 })
 })
 
-slotChoices.push(allSpecs)
+slotChoices.push(pool)
 
 }else{
 
@@ -281,9 +380,10 @@ slot.querySelectorAll(".classTick").forEach(classBox=>{
 
 if(classBox.checked){
 
-const specContainer=classBox.parentElement.nextElementSibling
+classBox.parentElement.nextElementSibling
+.querySelectorAll(".specTick")
+.forEach(spec=>{
 
-specContainer.querySelectorAll(".specTick").forEach(spec=>{
 if(spec.checked){
 
 specs.push({
@@ -313,27 +413,29 @@ for(let attempt=0;attempt<10000;attempt++){
 let group=[]
 
 for(let i=0;i<5;i++){
-
-if(slotChoices[i].length===0) continue
-
 group.push(random(slotChoices[i]))
-
 }
-
-if(group.length<5) continue
 
 let tanks=group.filter(g=>g.role==="tank").length
 let healers=group.filter(g=>g.role==="healer").length
 let dps=group.filter(g=>g.role==="dps").length
 
-if(tanks!==1||healers!==1||dps!==3) continue
+if(tanks!==1||healers!==1||dps!==3)continue
+
+if(document.getElementById("avoidDuplicateDPS").checked){
+
+const dpsSpecs=group.filter(g=>g.role==="dps").map(g=>g.spec)
+
+if(new Set(dpsSpecs).size!==dpsSpecs.length)continue
+
+}
 
 if(document.getElementById("lustRequired").checked){
-if(!group.some(g=>g.lust)) continue
+if(!group.some(g=>g.lust))continue
 }
 
 if(document.getElementById("brezRequired").checked){
-if(!group.some(g=>g.brez)) continue
+if(!group.some(g=>g.brez))continue
 }
 
 document.getElementById("result").innerHTML=
