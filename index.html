@@ -284,6 +284,10 @@ function createSlots(){
     container.appendChild(slot)
     updatePresetDropdown(i)
 
+    // make the preset name input update the header live
+    const nameInput = slot.querySelector('.presetName')
+    nameInput.addEventListener('input', ()=> updateSlotTitle(i))
+
     // initial pug state handling
     const pugBox = slot.querySelector(".pug")
     if(pugBox.checked){
@@ -343,11 +347,21 @@ function toggleSlot(i){
 function updateSlotTitle(i){
   const slot=document.querySelectorAll(".slot")[i]
   const titleEl=slot.querySelector(".slotTitle")
+
   if(slot.querySelector(".pug").checked){
     titleEl.textContent=`PUG`
-  }else{
-    const name=slot.querySelector(".presetSelect").value
-    titleEl.textContent=name?name.replace("wowSlotPreset_",""):`Slot ${i+1}`
+    return
+  }
+
+  const selectVal = slot.querySelector(".presetSelect").value
+  const nameInputVal = slot.querySelector(".presetName").value.trim()
+
+  if(selectVal){
+    titleEl.textContent = selectVal.replace("wowSlotPreset_","")
+  } else if(nameInputVal){
+    titleEl.textContent = nameInputVal
+  } else {
+    titleEl.textContent = `Slot ${i+1}`
   }
 }
 
