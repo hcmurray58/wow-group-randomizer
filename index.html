@@ -30,7 +30,6 @@ font-weight:bold;
 display:flex;
 align-items:center;
 gap:8px;
-cursor:pointer; /* indicate clickable header */
 }
 
 .slotHeader .slotTitle{
@@ -96,7 +95,6 @@ color:#6cf;
 cursor:pointer;
 text-decoration:underline;
 font-size:13px;
-margin-left:6px;
 }
 
 </style>
@@ -230,18 +228,15 @@ for(let i=0;i<5;i++){
 const slot=document.createElement("div")
 slot.className="slot"
 
-// header toggles the slot body; individual controls stop propagation so interacting doesn't collapse
 slot.innerHTML=`
-<div class="slotHeader" onclick="toggleSlot(${i})">
+<div class="slotHeader">
   <span class="slotTitle">Slot ${i+1}</span>
-  <div class="header-controls">
-    <label style="margin-right:6px">
-      <input type="checkbox" class="pug" onchange="onPugToggle(${i})" onclick="event.stopPropagation()"> PUG
-    </label>
-    <select class="presetSelect" onchange="presetSelected(${i})" onclick="event.stopPropagation()"></select>
-    <span class="updateToggle">update</span>
+  <div class="header-controls" onclick="event.stopPropagation()">
+    <label style="margin-right:6px"><input type="checkbox" class="pug" onchange="onPugToggle(${i})" onclick="event.stopPropagation()"> PUG</label>
     <input placeholder="Preset name" class="presetName" onclick="event.stopPropagation()">
     <button onclick="savePreset(${i}); event.stopPropagation();">Save</button>
+    <select class="presetSelect" onchange="presetSelected(${i})" onclick="event.stopPropagation()"></select>
+    <span class="updateToggle" onclick="toggleSlot(${i}); event.stopPropagation()">update</span>
   </div>
 </div>
 <div class="slotBody">
@@ -298,7 +293,7 @@ classList.appendChild(row)
 const classBox=row.querySelector(".classTick")
 const specSpan=row.querySelector(".specs")
 
-// start with all classes/specs unticked and specs hidden
+// start with all classes/specs hidden/unticked by default
 classBox.checked = false
 specSpan.style.display = "none"
 row.querySelectorAll(".specTick").forEach(s=>s.checked = false)
@@ -370,7 +365,7 @@ if(pug){
   classList.style.display="none"
   classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
 } else {
-  classList.style.display = "block"
+  classList.style.display="block"
   classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
 }
 updateSlotTitle(i)
@@ -461,16 +456,7 @@ classRows.forEach((row, index)=>{
 const entry = preset[index]
 
 // If preset missing for some reason, skip
-if(!entry) {
-  // default to hidden/unchecked
-  row.style.display = "none"
-  row.querySelector(".classTick").checked = false
-  row.querySelectorAll(".specTick").forEach(s=>{
-    s.checked = false
-    s.parentElement.style.display = "none"
-  })
-  return
-}
+if(!entry) return
 
 // Set class checkbox state
 const classTick = row.querySelector(".classTick")
@@ -486,9 +472,9 @@ specInputs.forEach((s, si)=>{
 const specEntry = entry.specs && entry.specs[si]
 
 if(!specEntry){
-  // if missing, default to unchecked and hidden
+  // if missing, default to unchecked and visible
   s.checked = false
-  s.parentElement.style.display = "none"
+  s.parentElement.style.display = ""
   return
 }
 
@@ -607,12 +593,7 @@ brez:spec.dataset.brez==="true"
 
 })
 
-// if the user has no selections for this slot treat as PUG
-if(specs.length===0){
-  slotChoices.push("pug")
-} else {
-  slotChoices.push(specs)
-}
+slotChoices.push(specs)
 
 }
 
@@ -679,3 +660,18 @@ group.map((g,i)=>{
 if(g.pug) return `Slot ${i+1}: PUG <span class="${g.role}">${g.role.toUpperCase()}</span>`
 
 return `Slot ${i+1}: <span style="color:${classColors[g.class]}">${g.class}</span> <span class="${g.role}">${g.spec}</span>`
+
+}).join("<br>")
+
+return
+
+}
+
+document.getElementById("result").innerHTML="No valid group found."
+
+}
+
+</script>
+
+</body>
+</html>
