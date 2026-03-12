@@ -1,15 +1,48 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <title>WoW Group Randomizer</title>
-<style>
-body{font-family:Arial;margin:20px;background:#111;color:#eee}
-.slot{border:1px solid #555;padding:10px;margin-bottom:10px}
-button{padding:10px;font-size:16px;margin-top:10px}
-.result{margin-top:20px;font-size:18px}
-</style>
-</head>
 
+<style>
+
+body{
+    font-family:Arial;
+    background:#111;
+    color:#eee;
+    margin:20px;
+}
+
+.slot{
+    border:1px solid #444;
+    padding:10px;
+    margin-bottom:15px;
+}
+
+.classBlock{
+    margin-left:10px;
+}
+
+.specBlock{
+    margin-left:25px;
+    display:none;
+}
+
+button{
+    padding:10px 18px;
+    font-size:16px;
+    margin-top:20px;
+}
+
+.result{
+    margin-top:25px;
+    font-size:18px;
+}
+
+</style>
+
+</head>
 <body>
 
 <h1>WoW Group Randomizer</h1>
@@ -29,61 +62,87 @@ button{padding:10px;font-size:16px;margin-top:10px}
 
 <script>
 
-const specs = [
+const classes = {
 
-{class:"Warrior",spec:"Protection",role:"tank"},
-{class:"Warrior",spec:"Arms",role:"dps"},
-{class:"Warrior",spec:"Fury",role:"dps"},
+Warrior:[
+{spec:"Protection",role:"tank"},
+{spec:"Arms",role:"dps"},
+{spec:"Fury",role:"dps"}
+],
 
-{class:"Paladin",spec:"Protection",role:"tank"},
-{class:"Paladin",spec:"Holy",role:"healer"},
-{class:"Paladin",spec:"Retribution",role:"dps",brez:true},
+Paladin:[
+{spec:"Protection",role:"tank"},
+{spec:"Holy",role:"healer"},
+{spec:"Retribution",role:"dps",brez:true}
+],
 
-{class:"Druid",spec:"Guardian",role:"tank",brez:true},
-{class:"Druid",spec:"Restoration",role:"healer",brez:true},
-{class:"Druid",spec:"Balance",role:"dps",brez:true},
-{class:"Druid",spec:"Feral",role:"dps",brez:true},
+Druid:[
+{spec:"Guardian",role:"tank",brez:true},
+{spec:"Restoration",role:"healer",brez:true},
+{spec:"Balance",role:"dps",brez:true},
+{spec:"Feral",role:"dps",brez:true}
+],
 
-{class:"Shaman",spec:"Restoration",role:"healer",lust:true},
-{class:"Shaman",spec:"Elemental",role:"dps",lust:true},
-{class:"Shaman",spec:"Enhancement",role:"dps",lust:true},
+Shaman:[
+{spec:"Restoration",role:"healer",lust:true},
+{spec:"Elemental",role:"dps",lust:true},
+{spec:"Enhancement",role:"dps",lust:true}
+],
 
-{class:"Mage",spec:"Arcane",role:"dps",lust:true},
-{class:"Mage",spec:"Fire",role:"dps",lust:true},
-{class:"Mage",spec:"Frost",role:"dps",lust:true},
+Mage:[
+{spec:"Arcane",role:"dps",lust:true},
+{spec:"Fire",role:"dps",lust:true},
+{spec:"Frost",role:"dps",lust:true}
+],
 
-{class:"Priest",spec:"Holy",role:"healer"},
-{class:"Priest",spec:"Discipline",role:"healer"},
-{class:"Priest",spec:"Shadow",role:"dps"},
+Priest:[
+{spec:"Holy",role:"healer"},
+{spec:"Discipline",role:"healer"},
+{spec:"Shadow",role:"dps"}
+],
 
-{class:"Monk",spec:"Brewmaster",role:"tank"},
-{class:"Monk",spec:"Mistweaver",role:"healer"},
-{class:"Monk",spec:"Windwalker",role:"dps"},
+Monk:[
+{spec:"Brewmaster",role:"tank"},
+{spec:"Mistweaver",role:"healer"},
+{spec:"Windwalker",role:"dps"}
+],
 
-{class:"Demon Hunter",spec:"Vengeance",role:"tank"},
-{class:"Demon Hunter",spec:"Havoc",role:"dps"},
+DemonHunter:[
+{spec:"Vengeance",role:"tank"},
+{spec:"Havoc",role:"dps"}
+],
 
-{class:"Death Knight",spec:"Blood",role:"tank",brez:true},
-{class:"Death Knight",spec:"Frost",role:"dps",brez:true},
-{class:"Death Knight",spec:"Unholy",role:"dps",brez:true},
+DeathKnight:[
+{spec:"Blood",role:"tank",brez:true},
+{spec:"Frost",role:"dps",brez:true},
+{spec:"Unholy",role:"dps",brez:true}
+],
 
-{class:"Evoker",spec:"Preservation",role:"healer"},
-{class:"Evoker",spec:"Devastation",role:"dps",lust:true},
-{class:"Evoker",spec:"Augmentation",role:"dps",lust:true},
+Evoker:[
+{spec:"Preservation",role:"healer"},
+{spec:"Devastation",role:"dps",lust:true},
+{spec:"Augmentation",role:"dps",lust:true}
+],
 
-{class:"Hunter",spec:"Beast Mastery",role:"dps",lust:true},
-{class:"Hunter",spec:"Marksman",role:"dps",lust:true},
-{class:"Hunter",spec:"Survival",role:"dps",lust:true},
+Hunter:[
+{spec:"Beast Mastery",role:"dps",lust:true},
+{spec:"Marksman",role:"dps",lust:true},
+{spec:"Survival",role:"dps",lust:true}
+],
 
-{class:"Warlock",spec:"Affliction",role:"dps",brez:true},
-{class:"Warlock",spec:"Demonology",role:"dps",brez:true},
-{class:"Warlock",spec:"Destruction",role:"dps",brez:true},
+Warlock:[
+{spec:"Affliction",role:"dps",brez:true},
+{spec:"Demonology",role:"dps",brez:true},
+{spec:"Destruction",role:"dps",brez:true}
+],
 
-{class:"Rogue",spec:"Assassination",role:"dps"},
-{class:"Rogue",spec:"Outlaw",role:"dps"},
-{class:"Rogue",spec:"Subtlety",role:"dps"}
-
+Rogue:[
+{spec:"Assassination",role:"dps"},
+{spec:"Outlaw",role:"dps"},
+{spec:"Subtlety",role:"dps"}
 ]
+
+}
 
 function createSlots(){
 
@@ -91,26 +150,73 @@ const container=document.getElementById("slots")
 
 for(let i=0;i<5;i++){
 
-const div=document.createElement("div")
-div.className="slot"
+const slot=document.createElement("div")
+slot.className="slot"
 
-div.innerHTML=`
-<b>Slot ${i+1}</b><br>
-<label><input type="checkbox" class="pug"> PUG</label><br>
-Allowed Specs:<br>
-<select multiple size="6" class="specSelect"></select>
+slot.innerHTML=`<b>Slot ${i+1}</b><br>
+<label><input type="checkbox" class="pug"> PUG (anything)</label><br><br>
 `
 
-container.appendChild(div)
+Object.keys(classes).forEach(cls=>{
 
-const select=div.querySelector(".specSelect")
+const classID=`slot${i}_${cls}`
 
-specs.forEach((s,index)=>{
-const opt=document.createElement("option")
-opt.value=index
-opt.text=`${s.class} - ${s.spec} (${s.role})`
-select.appendChild(opt)
+const classDiv=document.createElement("div")
+classDiv.className="classBlock"
+
+classDiv.innerHTML=`
+<label>
+<input type="checkbox" class="classTick" id="${classID}">
+${cls}
+</label>
+<div class="specBlock" id="${classID}_specs"></div>
+`
+
+slot.appendChild(classDiv)
+
+const specDiv=classDiv.querySelector(".specBlock")
+
+classes[cls].forEach(spec=>{
+
+const specBox=document.createElement("div")
+
+specBox.innerHTML=`
+<label>
+<input type="checkbox" class="specTick" checked
+data-class="${cls}"
+data-spec="${spec.spec}"
+data-role="${spec.role}"
+data-lust="${spec.lust||false}"
+data-brez="${spec.brez||false}">
+${spec.spec} (${spec.role})
+</label>
+`
+
+specDiv.appendChild(specBox)
+
 })
+
+const classCheckbox=classDiv.querySelector(".classTick")
+
+classCheckbox.addEventListener("change",()=>{
+
+if(classCheckbox.checked){
+
+specDiv.style.display="block"
+
+specDiv.querySelectorAll("input").forEach(s=>s.checked=true)
+
+}else{
+
+specDiv.style.display="none"
+
+}
+
+})
+
+})
+
+container.appendChild(slot)
 
 }
 
@@ -124,64 +230,78 @@ return arr[Math.floor(Math.random()*arr.length)]
 
 function generate(){
 
-const slots=document.querySelectorAll(".slot")
+const slots=[...document.querySelectorAll(".slot")]
 
-let slotOptions=[]
+let slotChoices=[]
 
 slots.forEach(slot=>{
 
-const pug=slot.querySelector(".pug").checked
+if(slot.querySelector(".pug").checked){
 
-if(pug){
+let allSpecs=[]
 
-slotOptions.push(specs)
+Object.keys(classes).forEach(cls=>{
+classes[cls].forEach(s=>{
+allSpecs.push({...s,class:cls})
+})
+})
+
+slotChoices.push(allSpecs)
 
 }else{
 
-const selected=[...slot.querySelector(".specSelect").selectedOptions]
-.map(o=>specs[o.value])
+const specs=[...slot.querySelectorAll(".specTick")]
+.filter(s=>s.checked)
+.map(s=>({
+class:s.dataset.class,
+spec:s.dataset.spec,
+role:s.dataset.role,
+lust:s.dataset.lust==="true",
+brez:s.dataset.brez==="true"
+}))
 
-slotOptions.push(selected)
+slotChoices.push(specs)
 
 }
 
 })
 
-let attempts=0
-
-while(attempts<10000){
-
-attempts++
+for(let attempt=0;attempt<10000;attempt++){
 
 let group=[]
 
 for(let i=0;i<5;i++){
-group.push(random(slotOptions[i]))
+
+if(slotChoices[i].length==0) continue
+
+group.push(random(slotChoices[i]))
+
 }
 
-let tanks=group.filter(g=>g.role=="tank").length
-let healers=group.filter(g=>g.role=="healer").length
-let dps=group.filter(g=>g.role=="dps").length
+if(group.length<5) continue
 
-if(tanks!=1||healers!=1||dps!=3)continue
+let tanks=group.filter(g=>g.role==="tank").length
+let healers=group.filter(g=>g.role==="healer").length
+let dps=group.filter(g=>g.role==="dps").length
+
+if(tanks!==1||healers!==1||dps!==3) continue
 
 if(document.getElementById("lustRequired").checked){
-if(!group.some(g=>g.lust))continue
+if(!group.some(g=>g.lust)) continue
 }
 
 if(document.getElementById("brezRequired").checked){
-if(!group.some(g=>g.brez))continue
+if(!group.some(g=>g.brez)) continue
 }
 
 document.getElementById("result").innerHTML=
-
-group.map((g,i)=>`Slot ${i+1}: ${g.class} - ${g.spec}`).join("<br>")
+group.map((g,i)=>`Slot ${i+1}: ${g.class} ${g.spec}`).join("<br>")
 
 return
 
 }
 
-document.getElementById("result").innerHTML="No valid group found"
+document.getElementById("result").innerHTML="No valid group found."
 
 }
 
@@ -189,3 +309,4 @@ document.getElementById("result").innerHTML="No valid group found"
 
 </body>
 </html>
+```
