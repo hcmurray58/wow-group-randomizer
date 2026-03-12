@@ -334,7 +334,12 @@ function loadPreset(i){
 const slot=document.querySelectorAll(".slot")[i]
 const key=slot.querySelector(".presetSelect").value
 
-const preset=JSON.parse(localStorage.getItem(key))
+if(!key) return // nothing to load for "New" or empty selection
+
+const raw = localStorage.getItem(key)
+if(!raw) return
+
+const preset=JSON.parse(raw)
 
 slot.querySelectorAll(".classTick").forEach((c,index)=>{
 
@@ -357,7 +362,15 @@ function updatePresetDropdown(i){
 const slot=document.querySelectorAll(".slot")[i]
 const select=slot.querySelector(".presetSelect")
 
+const prevValue = select.value || ""
+
+// build dropdown with default "New" option first
 select.innerHTML=""
+
+const newOpt=document.createElement("option")
+newOpt.value=""
+newOpt.text="New"
+select.appendChild(newOpt)
 
 for(let j=0;j<localStorage.length;j++){
 
@@ -373,6 +386,18 @@ select.appendChild(opt)
 
 }
 
+}
+
+// restore previous selection if still present
+select.value = prevValue && [...select.options].some(o=>o.value===prevValue) ? prevValue : ""
+
+// ensure selection change loads immediately
+select.onchange = function(){
+  if(this.value) {
+    loadPreset(i)
+  } else {
+    updateSlotTitle(i)
+  }
 }
 
 }
