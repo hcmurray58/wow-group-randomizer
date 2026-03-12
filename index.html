@@ -272,8 +272,9 @@ function createSlots(){
 
       classBox.addEventListener("change",()=>{
         if(classBox.checked){
+          // show specs but leave them unticked so user can choose individually
           specSpan.style.display="inline"
-          specSpan.querySelectorAll("input").forEach(s=>s.checked=true)
+          specSpan.querySelectorAll("input").forEach(s=>s.checked=false)
         }else{
           specSpan.style.display="none"
         }
@@ -527,10 +528,12 @@ function generate(){
       if(!group.some(g=>g.brez)) continue
     }
 
+    // Use slot titles for generated text
     document.getElementById("result").innerHTML =
       group.map((g,i)=>{
-        if(g.pug) return `Slot ${i+1}: PUG <span class="${g.role}">${g.role.toUpperCase()}</span>`
-        return `Slot ${i+1}: <span style="color:${classColors[g.class]}">${g.class}</span> <span class="${g.role}">${g.spec}</span>`
+        const slotTitle = slots[i].querySelector('.slotTitle').textContent || `Slot ${i+1}`
+        if(g.pug) return `${slotTitle}: PUG <span class="${g.role}">${g.role.toUpperCase()}</span>`
+        return `${slotTitle}: <span style="color:${classColors[g.class]}">${g.class}</span> <span class="${g.role}">${g.spec}</span>`
       }).join("<br>")
     return
   }
