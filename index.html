@@ -17,6 +17,7 @@ margin:20px;
 margin-bottom:12px; /* gap between top tickboxes and slots */
 }
 
+/* compact header row */
 .slot{
 border:1px solid #444;
 margin-bottom:10px;
@@ -27,11 +28,19 @@ background:#222;
 padding:6px;
 cursor:pointer;
 font-weight:bold;
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+.slotHeader .slotTitle{
+min-width:140px;
+font-weight:700;
 }
 
 .slotBody{
 padding:10px;
-display:block;
+display:none; /* collapsed by default */
 }
 
 .classRow{
@@ -59,6 +68,27 @@ margin-left:4px;
 .result{
 margin-top:25px;
 font-size:18px;
+}
+
+.header-controls{
+display:flex;
+align-items:center;
+gap:6px;
+flex-wrap:wrap;
+}
+
+/* ensure select and inputs are compact in header */
+.slotHeader input[type="text"],
+.slotHeader select{
+padding:4px;
+font-size:13px;
+background:#222;
+color:#eee;
+border:1px solid #555;
+}
+
+.slotHeader label{
+cursor:pointer;
 }
 
 </style>
@@ -193,18 +223,19 @@ const slot=document.createElement("div")
 slot.className="slot"
 
 slot.innerHTML=`
-<div class="slotHeader" onclick="toggleSlot(${i})">Slot ${i+1} - New Member</div>
+<div class="slotHeader" onclick="toggleSlot(${i})">
+  <span class="slotTitle">Slot ${i+1}</span>
+  <div class="header-controls" onclick="event.stopPropagation()">
+    <label style="margin-right:6px"><input type="checkbox" class="pug" onchange="onPugToggle(${i})" onclick="event.stopPropagation()"> PUG</label>
+    <input placeholder="Preset name" class="presetName" onclick="event.stopPropagation()">
+    <button onclick="savePreset(${i}); event.stopPropagation();">Save</button>
+    <button onclick="showAllTickboxes(${i}); event.stopPropagation();">Update</button>
+    <select class="presetSelect" onchange="presetSelected(${i})" onclick="event.stopPropagation()"></select>
+  </div>
+</div>
 <div class="slotBody">
 
-<label><input type="checkbox" class="pug" onchange="onPugToggle(${i})"> PUG</label>
-
 <br>
-<input placeholder="Preset name" class="presetName">
-<button onclick="savePreset(${i})">Save</button>
-
-<select class="presetSelect"></select>
-
-<br><br>
 
 </div>
 `
@@ -226,16 +257,16 @@ let specHTML=""
 classes[cls].forEach(spec=>{
 
 specHTML+=`
-<label class="${spec.role}">
-<input type="checkbox"
-class="specTick"
-checked
-data-class="${cls}"
-data-spec="${spec.spec}"
-data-role="${spec.role}"
-data-lust="${spec.lust||false}"
-data-brez="${spec.brez||false}">
-${spec.spec}
+<label class="specLabel ${spec.role}">
+  <input type="checkbox"
+  class="specTick"
+  checked
+  data-class="${cls}"
+  data-spec="${spec.spec}"
+  data-role="${spec.role}"
+  data-lust="${spec.lust||false}"
+  data-brez="${spec.brez||false}">
+  ${spec.spec}
 </label>
 `
 
@@ -243,12 +274,12 @@ ${spec.spec}
 
 row.innerHTML=`
 <label style="color:${classColors[cls]}">
-<input type="checkbox" class="classTick">
-${cls}
+  <input type="checkbox" class="classTick" checked>
+  ${cls}
 </label>
 
 <span class="specs">
-${specHTML}
+  ${specHTML}
 </span>
 `
 
@@ -288,11 +319,33 @@ if(pugBox.checked){
   classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
 }
 
+// collapsed by default: already set via CSS .slotBody display:none
+
+// set initial title
+updateSlotTitle(i)
+
 }
 
 }
 
 createSlots()
+
+function presetSelected(i){
+const slot=document.querySelectorAll(".slot")[i]
+const sel=slot.querySelector(".presetSelect")
+const nameInput=slot.querySelector(".presetName")
+
+// put selected preset name into text box (remove prefix)
+if(sel.value){
+  nameInput.value = sel.value.replace("wowSlotPreset_","")
+} else {
+  nameInput.value = ""
+}
+
+// load immediately
+loadPreset(i)
+updateSlotTitle(i)
+}
 
 function onPugToggle(i){
 const slot=document.querySelectorAll(".slot")[i]
@@ -321,16 +374,17 @@ function updateSlotTitle(i){
 
 const slot=document.querySelectorAll(".slot")[i]
 const header=slot.querySelector(".slotHeader")
+const titleEl=header.querySelector(".slotTitle")
 
 if(slot.querySelector(".pug").checked){
 
-header.textContent=`PUG`
+titleEl.textContent=`PUG`
 
 }else{
 
 const name=slot.querySelector(".presetSelect").value
 
-header.textContent=name?name.replace("wowSlotPreset_",""):`Slot ${i+1} - New Member`
+titleEl.textContent=name?name.replace("wowSlotPreset_",""):`Slot ${i+1}`
 
 }
 
@@ -345,11 +399,16 @@ if(!name)return
 
 let preset=[]
 
-slot.querySelectorAll(".classTick").forEach(c=>{
+// Save the visibility and selected state of classes/specs
+slot.querySelectorAll(".classRow").forEach(row=>{
+
+const classTick = row.querySelector(".classTick")
+const specInputs = [...row.querySelectorAll(".specTick")]
 
 preset.push({
-classEnabled:c.checked,
-specs:[...c.parentElement.nextElementSibling.querySelectorAll("input")].map(s=>s.checked)
+classEnabled: classTick.checked,
+classVisible: row.style.display!=="none",
+specs: specInputs.map(s=>({checked:s.checked, visible: s.parentElement.style.display!=="none"}))
 })
 
 })
@@ -358,8 +417,10 @@ localStorage.setItem("wowSlotPreset_"+name,JSON.stringify(preset))
 
 updatePresetDropdown(i)
 
+// set dropdown to saved value
 slot.querySelector(".presetSelect").value="wowSlotPreset_"+name
 
+// update title
 updateSlotTitle(i)
 
 }
@@ -376,19 +437,50 @@ if(!raw) return
 
 const preset=JSON.parse(raw)
 
-slot.querySelectorAll(".classTick").forEach((c,index)=>{
+// ensure classList present
+const classRows = slot.querySelectorAll(".classRow")
 
-c.checked=preset[index].classEnabled
+// apply preset: only show the tickboxes that were selected/visible in the preset
+classRows.forEach((row, index)=>{
 
-const specs=c.parentElement.nextElementSibling.querySelectorAll("input")
+const entry = preset[index]
 
-specs.forEach((s,j)=>s.checked=preset[index].specs[j])
+// If preset missing for some reason, skip
+if(!entry) return
 
-c.parentElement.nextElementSibling.style.display=c.checked?"inline":"none"
+// Set class checkbox state
+const classTick = row.querySelector(".classTick")
+classTick.checked = !!entry.classEnabled
+
+// Set row visibility: if preset says it was hidden (classVisible false), hide the whole row
+row.style.display = entry.classVisible === false ? "none" : "block"
+
+// For specs: iterate and apply checked + visibility per saved spec entry
+const specInputs = [...row.querySelectorAll(".specTick")]
+specInputs.forEach((s, si)=>{
+
+const specEntry = entry.specs && entry.specs[si]
+
+if(!specEntry){
+  // if missing, default to checked true and visible
+  s.checked = true
+  s.parentElement.style.display = ""
+  return
+}
+
+s.checked = !!specEntry.checked
+s.parentElement.style.display = specEntry.visible === false ? "none" : ""
 
 })
 
-/* if pug was selected, ensure class list hidden */
+// ensure the specs container shows only if classTick checked AND some visible specs
+const specSpan = row.querySelector(".specs")
+const anySpecVisible = [...specSpan.querySelectorAll(".specLabel")].some(lbl => lbl.style.display !== "none")
+specSpan.style.display = (classTick.checked && anySpecVisible) ? "inline" : "none"
+
+})
+
+// if pug was selected, ensure class list hidden
 const classList = slot.querySelector(".classList")
 if(slot.querySelector(".pug").checked){
   classList.style.display="none"
@@ -398,8 +490,34 @@ if(slot.querySelector(".pug").checked){
   classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
 }
 
+// set the name input to selected preset name
+slot.querySelector(".presetName").value = key.replace("wowSlotPreset_","")
+
+// collapse body (presets load but keep header compact)
+slot.querySelector(".slotBody").style.display = "none"
+
 updateSlotTitle(i)
 
+}
+
+function showAllTickboxes(i){
+const slot=document.querySelectorAll(".slot")[i]
+const classRows = slot.querySelectorAll(".classRow")
+
+classRows.forEach(row=>{
+  // show all rows and spec labels
+  row.style.display = "block"
+  row.querySelectorAll(".specLabel").forEach(lbl=>lbl.style.display = "")
+})
+
+// ensure classList visible if not pug
+const classList = slot.querySelector(".classList")
+if(!slot.querySelector(".pug").checked){
+  classList.style.display="block"
+  classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
+}
+
+slot.querySelector(".slotBody").style.display = "block"
 }
 
 function updatePresetDropdown(i){
@@ -436,14 +554,7 @@ select.appendChild(opt)
 // restore previous selection if still present
 select.value = prevValue && [...select.options].some(o=>o.value===prevValue) ? prevValue : ""
 
-// ensure selection change loads immediately
-select.onchange = function(){
-  if(this.value) {
-    loadPreset(i)
-  } else {
-    updateSlotTitle(i)
-  }
-}
+// onchange handled by select element's onchange attribute in header (presetSelected)
 
 }
 
@@ -466,13 +577,15 @@ slotChoices.push("pug")
 
 let specs=[]
 
-slot.querySelectorAll(".classTick").forEach(classBox=>{
+slot.querySelectorAll(".classRow").forEach(row=>{
 
-if(classBox.checked){
+// skip rows that are hidden (user chose to hide them via preset)
+if(row.style.display==="none") return
 
-classBox.parentElement.nextElementSibling
-.querySelectorAll(".specTick")
-.forEach(spec=>{
+const classBox = row.querySelector(".classTick")
+if(!classBox.checked) return
+
+row.querySelectorAll(".specTick").forEach(spec=>{
 
 if(spec.checked){
 
@@ -487,8 +600,6 @@ brez:spec.dataset.brez==="true"
 }
 
 })
-
-}
 
 })
 
