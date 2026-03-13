@@ -10,6 +10,7 @@ body{
   background:#111;
   color:#eee;
   margin:20px;
+  padding-bottom:5cm; /* added ~5cm bottom space for easier scrolling */
 }
 
 #topControls{
@@ -323,16 +324,16 @@ function createSlots(){
     const nameInput = slot.querySelector('.presetName')
     nameInput.addEventListener('input', ()=> updateSlotTitle(i))
 
-    // initial pug state handling
-    const pugBox = slot.querySelector(".pug")
-    if(pugBox.checked){
-      // honor state: if selected-only, hide classList, if 'all' keep visible — default state set below
-      // noop here
-    }
-
     // set initial state: selected-only (State 1)
     slot.dataset.state = 'selected-only'
     applyState(i)
+
+    // start with PUG checked for all slots
+    const pugBox = slot.querySelector(".pug")
+    if(pugBox){
+      pugBox.checked = true
+      onPugToggle(i)
+    }
 
     updateSlotTitle(i)
   }
@@ -662,11 +663,13 @@ function generate(){
 
     for(let i=0;i<5;i++){
       if(slotChoices[i]==="pug"){
-        group.push({pug:true,role:roles[i]})
+        group.push({pug:true, role:roles[i], slotIndex:i})
       } else {
         const options=slotChoices[i].filter(o=>o.role===roles[i])
         if(options.length===0) continue
-        group.push(random(options))
+        // clone chosen option and attach slot index
+        const chosen = {...random(options), slotIndex:i}
+        group.push(chosen)
       }
     }
 
@@ -700,9 +703,20 @@ function generate(){
       return role.charAt(0).toUpperCase()+role.slice(1)
     }
 
-    const lines = group.map((g,i)=>{
-      const slot = slots[i]
-      const slotName = getSlotName(slot, i)
+    // sort: Tank, Healer, then DPS alphabetical by slot name
+    const rolePriority = {tank:0, healer:1, dps:2}
+    const sortedGroup = [...group].sort((a,b)=>{
+      const pa = rolePriority[a.role] ?? 99
+      const pb = rolePriority[b.role] ?? 99
+      if(pa !== pb) return pa - pb
+      // same role: alphabetical by slot name
+      const nameA = getSlotName(slots[a.slotIndex], a.slotIndex)
+      const nameB = getSlotName(slots[b.slotIndex], b.slotIndex)
+      return nameA.localeCompare(nameB)
+    })
+
+    const lines = sortedGroup.map((g)=>{
+      const slotName = getSlotName(slots[g.slotIndex], g.slotIndex)
       const roleText = formatRole(g.role)
       const classText = g.class || ""
       const specText = g.spec || ""
@@ -725,9 +739,38 @@ function generate(){
       return nameSection + roleSection + classSection + specSection
     })
 
+    // collect lust and brez providers by slot name
+    const lustProviders = sortedGroup.filter(g=>g.lust).map(g=>getSlotName(slots[g.slotIndex], g.slotIndex))
+    const brezProviders = sortedGroup.filter(g=>g.brez).map(g=>getSlotName(slots[g.slotIndex], g.slotIndex))
+
     const resultDiv = document.getElementById("result")
     const pre = document.createElement('pre')
-    pre.innerHTML = lines.join("\n")
+
+    // build final HTML: lines + blank line + providers + missing indicators
+    let outHTML = lines.join("\n")
+    outHTML += "\n\n"
+    outHTML += "Lust providers: "
+    if(lustProviders.length) outHTML += lustProviders.join(", ")
+    else outHTML += "(none)  <-- MISSING LUST"
+
+    outHTML += "\nBattle Rez providers: "
+    if(brezProviders.length) outHTML += brezProviders.join(", ")
+    else outHTML += "(none)  <-- MISSING BATTLE REZ"
+
+    // also indicate overall if user requested required flags and it's missing
+    const requireLust = document.getElementById("lustRequired").checked
+    const requireBrez = document.getElementById("brezRequired").checked
+    if(requireLust || requireBrez){
+      outHTML += "\n\nRequirements status:"
+      if(requireLust){
+        outHTML += "\n - Lust: " + (lustProviders.length ? "OK" : "MISSING")
+      }
+      if(requireBrez){
+        outHTML += "\n - Battle Rez: " + (brezProviders.length ? "OK" : "MISSING")
+      }
+    }
+
+    pre.innerHTML = outHTML
     resultDiv.innerHTML = ""
     resultDiv.appendChild(pre)
 
