@@ -13,17 +13,27 @@ body{
   padding-bottom:5cm; /* added ~5cm bottom space for easier scrolling */
 }
 
+/* center title image */
 h1{
-  text-align: center;
-  margin-bottom: 12px;
+  text-align:center;
+  margin:0 0 12px 0;
 }
 
+/* top controls: center and reduce vertical gap */
 #topControls{
   margin: 0 auto 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px; /* slightly tighter spacing between checkboxes */
+}
+
+/* ensure each label in top controls is compact and centered */
+#topControls label{
+  display:block;
+  margin:0;
+  padding:2px 0;
+  text-align:center;
 }
 
 #slots{
@@ -145,7 +155,7 @@ h1{
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px; /* slightly tighter spacing between checkboxes */
 }
 
 #slots{
@@ -187,11 +197,10 @@ h1{
 
 <!-- moved the five top checkboxes here (below slots, above generate button) -->
 <div id="topControls">
-  <label><input type="checkbox" id="tankNonPugRequired"> Tank must be non-PUG</label><br>
-  <label><input type="checkbox" id="healerNonPugRequired"> Healer must be non-PUG</label><br>
-
-  <label><input type="checkbox" id="lustRequired"> Require Lust</label><br>
-  <label><input type="checkbox" id="brezRequired"> Require Battle Rez</label><br>
+  <label><input type="checkbox" id="tankNonPugRequired"> Tank must be non-PUG</label>
+  <label><input type="checkbox" id="healerNonPugRequired"> Healer must be non-PUG</label>
+  <label><input type="checkbox" id="lustRequired"> Require Lust</label>
+  <label><input type="checkbox" id="brezRequired"> Require Battle Rez</label>
   <label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label>
 </div>
 
