@@ -340,6 +340,13 @@ function presetSelected(i){
     nameInput.value = ""
   }
 
+  // ensure PUG is cleared when selecting a preset
+  const pugBox = slot.querySelector(".pug")
+  if(pugBox){
+    pugBox.checked = false
+    onPugToggle(i)
+  }
+
   // load immediately
   loadPreset(i)
   updateSlotTitle(i)
@@ -539,15 +546,26 @@ function updatePresetDropdown(i){
   newOpt.text="New"
   select.appendChild(newOpt)
 
+  // collect preset keys and sort alphabetically by display name
+  const presets=[]
   for(let j=0;j<localStorage.length;j++){
     const key=localStorage.key(j)
     if(key.startsWith("wowSlotPreset_")){
-      const opt=document.createElement("option")
-      opt.value=key
-      opt.text=key.replace("wowSlotPreset_","")
-      select.appendChild(opt)
+      presets.push(key)
     }
   }
+  presets.sort((a,b)=>{
+    const aName = a.replace("wowSlotPreset_","").toLowerCase()
+    const bName = b.replace("wowSlotPreset_","").toLowerCase()
+    return aName.localeCompare(bName)
+  })
+
+  presets.forEach(key=>{
+    const opt=document.createElement("option")
+    opt.value=key
+    opt.text=key.replace("wowSlotPreset_","")
+    select.appendChild(opt)
+  })
 
   select.value = prevValue && [...select.options].some(o=>o.value===prevValue) ? prevValue : ""
 }
@@ -564,7 +582,8 @@ function generate(){
   const slots=[...document.querySelectorAll(".slot")]
   let slotChoices=[]
 
-  slots.forEach(slot=>{
+  // ensure we have index so we can update slot UI when treating empty as PUG
+  slots.forEach((slot, idx)=>{
     if(slot.querySelector(".pug").checked){
       slotChoices.push("pug")
     } else {
@@ -586,8 +605,13 @@ function generate(){
           }
         })
       })
-      // if no user choices treat as PUG
+      // if no user choices treat as PUG and update the slot UI
       if(specs.length===0){
+        const pugBox = slot.querySelector(".pug")
+        if(pugBox){
+          pugBox.checked = true
+          onPugToggle(idx)
+        }
         slotChoices.push("pug")
       } else {
         slotChoices.push(specs)
