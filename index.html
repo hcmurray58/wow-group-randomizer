@@ -54,7 +54,7 @@ body{
 /* class label column */
 .classRow > label{
   display:inline-block;
-  width:220px;          /* increased width to avoid overlap for long class names */
+  width:180px;          /* reduced so gap between class and specs is smaller */
   box-sizing:border-box;
   vertical-align:top;
 }
@@ -67,7 +67,7 @@ body{
 /* specs column occupies remaining space and aligns */
 .specs{
   display:inline-block;
-  width:calc(100% - 230px);
+  width:calc(100% - 190px);
   box-sizing:border-box;
   margin-left:0;
 }
@@ -368,6 +368,9 @@ function presetSelected(i){
   // load immediately
   loadPreset(i)
   updateSlotTitle(i)
+
+  // refresh all dropdowns so chosen name can't be picked in other slots
+  document.querySelectorAll('.slot').forEach((_, idx) => updatePresetDropdown(idx))
 }
 
 function onPugToggle(i){
@@ -518,8 +521,10 @@ function savePreset(i){
   })
 
   localStorage.setItem("wowSlotPreset_"+name,JSON.stringify(preset))
-  updatePresetDropdown(i)
+  // refresh all dropdowns so the new name is reflected and disabled in other slots
+  document.querySelectorAll('.slot').forEach((_, idx) => updatePresetDropdown(idx))
   slot.querySelector(".presetSelect").value="wowSlotPreset_"+name
+
   updateSlotTitle(i)
 }
 
@@ -619,10 +624,19 @@ function updatePresetDropdown(i){
     return aName.localeCompare(bName)
   })
 
+  // collect other slots' current selections so we can disable those options here
+  const otherSelected = new Set(
+    [...document.querySelectorAll('.presetSelect')]
+      .map(s => s.value)
+      .filter(v => v && v !== prevValue)
+  )
+
   presets.forEach(key=>{
     const opt=document.createElement("option")
     opt.value=key
     opt.text=key.replace("wowSlotPreset_","")
+    // disable option if another slot (not this one) already has it selected
+    if(otherSelected.has(key)) opt.disabled = true
     select.appendChild(opt)
   })
 
