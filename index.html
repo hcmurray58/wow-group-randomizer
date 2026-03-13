@@ -372,17 +372,42 @@ function onPugToggle(i){
   const state = slot.dataset.state || 'selected-only'
 
   if(pug){
-    // if in selected-only state then hide the class list; in 'all' state keep class list visible
+    // Reset all slot inputs when PUG is ticked:
+    // - clear preset dropdown and name
+    // - uncheck all class checkboxes and spec checkboxes
+    // - hide class list if in selected-only state, otherwise leave hidden but disabled
+    const sel = slot.querySelector(".presetSelect")
+    const name = slot.querySelector(".presetName")
+    if(sel) sel.value = ""
+    if(name) name.value = ""
+
+    slot.querySelectorAll(".classRow").forEach(row=>{
+      const classTick = row.querySelector(".classTick")
+      const specInputs = row.querySelectorAll(".specTick")
+      if(classTick) classTick.checked = false
+      specInputs.forEach(s=> s.checked = false)
+      // hide specs and rows while pug is active
+      const specSpan = row.querySelector(".specs")
+      if(specSpan) specSpan.style.display = "none"
+      row.style.display = "none"
+      // ensure spec labels are visible when class is later selected (reset any inline hiding)
+      row.querySelectorAll(".specLabel").forEach(lbl=> lbl.style.display = "")
+    })
+
+    // hide and disable class list when PUG is checked in selected-only state
     if(state === 'selected-only'){
       classList.style.display="none"
       classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
     } else {
+      // in 'all' state keep class list visually available but inputs disabled
       classList.style.display="block"
-      classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
+      classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
     }
   } else {
+    // Re-enable UI when PUG cleared. Restore visibility according to current state.
     classList.style.display="block"
     classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
+    applyState(i)
   }
   updateSlotTitle(i)
 }
@@ -751,11 +776,11 @@ function generate(){
     outHTML += "\n\n"
     outHTML += "Lust providers: "
     if(lustProviders.length) outHTML += lustProviders.join(", ")
-    else outHTML += "(none)  <-- MISSING LUST"
+    else outHTML += "(none)"
 
     outHTML += "\nBattle Rez providers: "
     if(brezProviders.length) outHTML += brezProviders.join(", ")
-    else outHTML += "(none)  <-- MISSING BATTLE REZ"
+    else outHTML += "(none)"
 
     // also indicate overall if user requested required flags and it's missing
     const requireLust = document.getElementById("lustRequired").checked
