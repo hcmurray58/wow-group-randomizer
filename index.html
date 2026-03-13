@@ -43,18 +43,37 @@ body{
   /* remain visible; two states control which rows are shown */
 }
 
+/* align class column and spec column so tickboxes/names line up */
 .classRow{
   margin-bottom:6px;
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
 }
 
+/* class label column */
+.classRow > label{
+  display:inline-block;
+  width:160px;          /* fixed width for class column */
+  box-sizing:border-box;
+  vertical-align:top;
+}
+
+/* specs column occupies remaining space and aligns */
 .specs{
-  margin-left:10px;
+  display:inline-block;
+  width:calc(100% - 170px);
+  box-sizing:border-box;
+  margin-left:0;
 }
 
 .specs label{
   margin-right:8px;
+  display:inline-block;
+  min-width:120px;      /* keep spec labels consistent width for nicer alignment */
 }
 
+/* role colours */
 .tank{color:#4aa3ff;}
 .healer{color:#3ddc84;}
 .dps{color:#ff6b6b;}
@@ -69,13 +88,13 @@ button{
   font-size:18px;
 }
 
-/* add monospace formatting for generated output */
+/* add monospace formatting for generated output (text fallback) */
 .result pre{
   font-family:monospace;
   font-size:14px;
   line-height:1.2;
   white-space:pre;
-  margin:0;
+  margin:0 0 8px 0;
 }
 
 .header-controls{
@@ -718,9 +737,11 @@ function generate(){
     }
 
     // Build nicely aligned lines using slot names and keep colouring for class + spec and role
-    const nameFieldWidth = 12
-    const roleFieldWidth = 10
-    const classFieldWidth = 18
+    const nameFieldWidth = 160
+    const roleFieldWidth = 80
+    const classFieldWidth = 200
+    const lineHeight = 20
+    const font = "14px monospace"
 
     function formatRole(role){
       if(!role) return ""
@@ -740,63 +761,140 @@ function generate(){
       return nameA.localeCompare(nameB)
     })
 
-    const lines = sortedGroup.map((g)=>{
-      const slotName = getSlotName(slots[g.slotIndex], g.slotIndex)
-      const roleText = formatRole(g.role)
-      const classText = g.class || ""
-      const specText = g.spec || ""
-
-      const namePart = slotName + ":"
-      const namePad = Math.max(0, nameFieldWidth - namePart.length)
-      const rolePad = Math.max(0, roleFieldWidth - roleText.length)
-      const classPad = Math.max(0, classFieldWidth - classText.length)
-
-      const nameSection = namePart + " ".repeat(namePad)
-      const roleSection = `<span class="${g.role||''}">${roleText}</span>` + " ".repeat(rolePad)
-
-      if(g.pug){
-        return nameSection + roleSection
+    // Prepare structured lines for text fallback and image rendering
+    const linesData = sortedGroup.map(g=>{
+      return {
+        slotName: getSlotName(slots[g.slotIndex], g.slotIndex),
+        role: g.role || "",
+        roleText: formatRole(g.role),
+        className: g.class || "",
+        specName: g.spec || "",
+        color: classColors[g.class] || '#fff',
+        isPug: !!g.pug,
+        slotIndex: g.slotIndex
       }
-
-      const color = classColors[classText] || '#fff'
-      const classSection = `<span style="color:${color}">${classText}</span>` + " ".repeat(classPad)
-      const specSection = `<span style="color:${color}">${specText}</span>`
-      return nameSection + roleSection + classSection + specSection
     })
 
-    // collect lust and brez providers by slot name
-    const lustProviders = sortedGroup.filter(g=>g.lust).map(g=>getSlotName(slots[g.slotIndex], g.slotIndex))
-    const brezProviders = sortedGroup.filter(g=>g.brez).map(g=>getSlotName(slots[g.slotIndex], g.slotIndex))
+    // Build simple textual fallback (keeps previous behaviour)
+    const textLines = linesData.map(ld=>{
+      const namePart = padRight(ld.slotName + ":", Math.floor(nameFieldWidth/8))
+      const rolePart = padRight(ld.roleText, Math.floor(roleFieldWidth/8))
+      if(ld.isPug) return namePart + rolePart
+      return namePart + rolePart + padRight(ld.className, Math.floor(classFieldWidth/8)) + ld.specName
+    })
 
-    const resultDiv = document.getElementById("result")
-    const pre = document.createElement('pre')
+    // create canvas and draw coloured output
+    const canvasWidth = nameFieldWidth + roleFieldWidth + classFieldWidth + 40
+    const canvasHeight = Math.max(120, linesData.length * lineHeight + 80)
+    const canvas = document.createElement('canvas')
+    canvas.width = canvasWidth
+    canvas.height = canvasHeight
+    const ctx = canvas.getContext('2d')
 
-    // build final HTML: lines + blank line + providers + missing indicators
-    let outHTML = lines.join("\n")
-    outHTML += "\n\n"
-    outHTML += "Lust providers: "
-    if(lustProviders.length) outHTML += lustProviders.join(", ")
-    else outHTML += "(none)"
+    // background
+    ctx.fillStyle = "#111"
+    ctx.fillRect(0,0,canvas.width,canvas.height)
 
-    outHTML += "\nBattle Rez providers: "
-    if(brezProviders.length) outHTML += brezProviders.join(", ")
-    else outHTML += "(none)"
+    ctx.font = font
+    ctx.textBaseline = "top"
 
-    // also indicate overall if user requested required flags and it's missing
+    // draw each line
+    linesData.forEach((ld, idx)=>{
+      const y = 10 + idx * lineHeight
+      // name (white)
+      ctx.fillStyle = "#eee"
+      ctx.fillText(ld.slotName + ":", 10, y)
+
+      // role (colour via role classes)
+      const roleX = 10 + nameFieldWidth
+      const roleColor = ld.role === 'tank' ? '#4aa3ff' : (ld.role === 'healer' ? '#3ddc84' : '#fff')
+      ctx.fillStyle = roleColor
+      ctx.fillText(ld.roleText, roleX, y)
+
+      // class + spec
+      const classX = roleX + roleFieldWidth
+      if(ld.isPug){
+        // nothing more
+        return
+      }
+      ctx.fillStyle = ld.color
+      ctx.fillText(ld.className, classX, y)
+      // spec slightly after class column
+      ctx.fillText(ld.specName, classX + classFieldWidth - 140, y)
+    })
+
+    // providers info at bottom
+    const lustProviders = linesData.filter(ld=>ld.role && !ld.isPug && classes[ld.className] && ld.specName && ld.role && ld.specName && ( (classes[ld.className].find(s=>s.spec===ld.specName) || {}).lust )).map(ld=>ld.slotName)
+    const brezProviders = linesData.filter(ld=>ld.role && !ld.isPug && classes[ld.className] && ld.specName && ( (classes[ld.className].find(s=>s.spec===ld.specName) || {}).brez )).map(ld=>ld.slotName)
+
+    let footerY = 10 + linesData.length * lineHeight + 6
+    ctx.fillStyle = "#eee"
+    ctx.fillText("Lust providers: " + (lustProviders.length ? lustProviders.join(", ") : "(none)"), 10, footerY)
+    footerY += lineHeight
+    ctx.fillText("Battle Rez providers: " + (brezProviders.length ? brezProviders.join(", ") : "(none)"), 10, footerY)
+    footerY += lineHeight
+
     const requireLust = document.getElementById("lustRequired").checked
     const requireBrez = document.getElementById("brezRequired").checked
     if(requireLust || requireBrez){
-      outHTML += "\n\nRequirements status:"
       if(requireLust){
-        outHTML += "\n - Lust: " + (lustProviders.length ? "OK" : "MISSING")
+        ctx.fillStyle = lustProviders.length ? "#3ddc84" : "#ff6b6b"
+        ctx.fillText("Lust: " + (lustProviders.length ? "OK" : "MISSING"), 10, footerY)
+        footerY += lineHeight
       }
       if(requireBrez){
-        outHTML += "\n - Battle Rez: " + (brezProviders.length ? "OK" : "MISSING")
+        ctx.fillStyle = brezProviders.length ? "#3ddc84" : "#ff6b6b"
+        ctx.fillText("Battle Rez: " + (brezProviders.length ? "OK" : "MISSING"), 10, footerY)
+        footerY += lineHeight
       }
     }
 
-    pre.innerHTML = outHTML
+    // show both image and text fallback; add copy button
+    const resultDiv = document.getElementById("result")
     resultDiv.innerHTML = ""
+
+    // image
+    const img = document.createElement('img')
+    img.src = canvas.toDataURL('image/png')
+    img.alt = "Group output image"
+    img.style.maxWidth = "100%"
+    img.style.display = "block"
+    img.style.marginBottom = "8px"
+    resultDiv.appendChild(img)
+
+    // copy button
+    const copyBtn = document.createElement('button')
+    copyBtn.textContent = "Copy image"
+    copyBtn.onclick = async function(){
+      try{
+        // canvas -> blob -> clipboard
+        canvas.toBlob(async function(blob){
+          if(!blob) throw new Error("Failed to create image blob")
+          if(navigator.clipboard && navigator.clipboard.write){
+            const item = new ClipboardItem({'image/png': blob})
+            await navigator.clipboard.write([item])
+            copyBtn.textContent = "Copied"
+            setTimeout(()=> copyBtn.textContent = "Copy image", 1500)
+          } else {
+            // fallback: open image in new tab for manual copy
+            const url = URL.createObjectURL(blob)
+            window.open(url, "_blank")
+          }
+        })
+      }catch(e){
+        // fallback open data URL
+        const url = img.src
+        window.open(url, "_blank")
+      }
+    }
+    resultDiv.appendChild(copyBtn)
+
+    // text fallback
+    const pre = document.createElement('pre')
+    pre.textContent = textLines.join("\n") + "\n\n" +
+      "Lust providers: " + (lustProviders.length ? lustProviders.join(", ") : "(none)") + "\n" +
+      "Battle Rez providers: " + (brezProviders.length ? brezProviders.join(", ") : "(none)") + ( (requireLust||requireBrez) ? ("\n\nRequirements status:\n" + (requireLust ? (" - Lust: " + (lustProviders.length ? "OK" : "MISSING") + "\n") : "") + (requireBrez ? (" - Battle Rez: " + (brezProviders.length ? "OK" : "MISSING") + "\n") : "")) : "" )
+
     resultDiv.appendChild(pre)
 
     return
