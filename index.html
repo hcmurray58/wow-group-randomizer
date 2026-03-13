@@ -85,8 +85,60 @@ body{
 .dps{color:#ff6b6b;}
 
 button{
-  padding:4px 10px;
+  padding:6px 12px;
   margin-left:4px;
+  font-weight:700;
+  font-family: "Trebuchet MS", Arial, sans-serif;
+  color:#1b1300;
+  background: linear-gradient(#f7df9a, #c28f25); /* gold */
+  border:1px solid #6b4a12;
+  border-radius:6px;
+  box-shadow: 0 5px 0 #5a3e10, 0 8px 20px rgba(0,0,0,0.6);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.18);
+  cursor:pointer;
+  transition: transform .06s ease, box-shadow .06s ease, filter .06s ease;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* Primary variant for prominent actions */
+button.primary{
+  background: linear-gradient(#ffd86b, #e09a2e);
+  border-color: #7a5314;
+  box-shadow: 0 6px 0 #664714, 0 12px 28px rgba(0,0,0,0.6);
+  color:#0f0b00;
+  font-size:15px;
+}
+
+/* Smaller variant for slot 'Save' buttons */
+button.small{
+  padding:4px 8px;
+  font-size:13px;
+  border-radius:4px;
+  box-shadow: 0 3px 0 #564012;
+}
+
+/* Hover / active affordances */
+button:hover{
+  transform: translateY(-1px);
+  filter:brightness(1.03);
+  box-shadow: 0 8px 0 #5a3e10, 0 12px 26px rgba(0,0,0,0.55);
+}
+button:active{
+  transform: translateY(1px);
+  box-shadow: 0 3px 0 #4a3008;
+}
+
+/* Disabled */
+button:disabled{
+  opacity:0.5;
+  cursor:not-allowed;
+  filter:grayscale(0.4) saturate(0.6);
+}
+
+/* keep copy button inline with appearance */
+.copyBtn{
+  margin-top:6px;
 }
 
 .result{
@@ -150,7 +202,8 @@ button{
   <label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label>
 </div>
 
-<button onclick="generate()">Generate Group</button>
+-<button onclick="generate()">Generate Group</button>
++<button class="primary" onclick="generate()">Generate Group</button>
 
 <div class="result" id="result"></div>
 
@@ -1000,6 +1053,8 @@ function generate(){
     // copy button
     const copyBtn = document.createElement('button')
     copyBtn.textContent = "Copy image"
++   // style as primary so it matches the prominent action look
++   copyBtn.className = "primary copyBtn"
     copyBtn.onclick = async function(){
       try{
         // canvas -> blob -> clipboard
