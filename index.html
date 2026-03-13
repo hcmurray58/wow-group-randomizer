@@ -806,7 +806,13 @@ function generate(){
     if(requireBrez) footerLines += 1
 
     const canvasWidth = leftPadding + nameFieldWidth + roleFieldWidth + classFieldWidth + maxSpecW + rightPadding + 6
-    const canvasHeight = 10 + linesData.length * lineHeight + footerLines * lineHeight + 10
+    // reserve space so rows and providers never overlap:
+    // topContentY = vertical space from panel top to first row
+    const topContentY = 22
+    const rowsHeight = linesData.length * lineHeight
+    const footerHeight = footerLines * lineHeight + 8
+    // canvas height = inset margins + topContentY + rows + footer + extra padding
+    const canvasHeight = inset * 2 + topContentY + rowsHeight + footerHeight + 12
     const canvas = document.createElement('canvas')
     canvas.width = Math.max(300, Math.ceil(canvasWidth))
     canvas.height = Math.ceil(canvasHeight)
@@ -863,18 +869,12 @@ function generate(){
     ctx.stroke()
     ctx.restore()
 
-    // header subtle title (optional, small)
-    ctx.font = "bold 12px sans-serif"
-    ctx.fillStyle = "rgba(255,255,255,0.85)"
-    const title = "Group"
-    ctx.fillText(title, panelX + 12, panelY + 8)
-
-    // restore monospace for the table text
+    // no title (user requested), restore monospace for the table text
     ctx.font = font
     ctx.textBaseline = "top"
 
     // draw each line using computed column X positions
-    const rowTop = panelY + 30
+    const rowTop = panelY + topContentY
     linesData.forEach((ld, idx) => {
       const y = rowTop + idx * lineHeight
       // name
