@@ -358,14 +358,27 @@ function toggleSlot(i){
     slot.querySelectorAll(".classRow").forEach(row=>{
       row.style.display = "block"
       const specs = row.querySelector(".specs")
-      if(specs) specs.style.display = "inline"
-      row.querySelectorAll(".specLabel").forEach(lbl=>{
-        if(lbl.style.display === "none") lbl.style.display = ""
-      })
+      if(specs){
+        // show specs only if the class is checked, otherwise hide
+        if(row.querySelector(".classTick").checked){
+          specs.style.display = "inline"
+          row.querySelectorAll(".specLabel").forEach(lbl=>{
+            if(lbl.style.display === "none") lbl.style.display = ""
+          })
+        } else {
+          specs.style.display = "none"
+        }
+      }
     })
   } else {
-    // collapse: hide body (header will show only checked classes)
+    // collapse: hide unselected classes (keep only rows where class checkbox is checked)
     body.style.display = "none"
+    slot.querySelectorAll(".classRow").forEach(row=>{
+      const classChecked = !!row.querySelector(".classTick").checked
+      row.style.display = classChecked ? "block" : "none"
+      const specs = row.querySelector(".specs")
+      if(specs) specs.style.display = "none" // hide specs when collapsed
+    })
   }
 
   updateSlotTitle(i)
@@ -374,7 +387,6 @@ function toggleSlot(i){
 function updateSlotTitle(i){
   const slot=document.querySelectorAll(".slot")[i]
   const titleEl=slot.querySelector(".slotTitle")
-  const body=slot.querySelector(".slotBody")
 
   if(slot.querySelector(".pug").checked){
     titleEl.textContent=`PUG`
@@ -384,30 +396,12 @@ function updateSlotTitle(i){
   const selectVal = slot.querySelector(".presetSelect").value
   const nameInputVal = slot.querySelector(".presetName").value.trim()
 
-  let baseName = ""
   if(selectVal){
-    baseName = selectVal.replace("wowSlotPreset_","")
+    titleEl.textContent = selectVal.replace("wowSlotPreset_","")
   } else if(nameInputVal){
-    baseName = nameInputVal
+    titleEl.textContent = nameInputVal
   } else {
-    baseName = `Slot ${i+1}`
-  }
-
-  // If collapsed, append the list of checked classes (only those with checkbox ticked)
-  if(body.style.display==="none"){
-    const checked = [...slot.querySelectorAll(".classRow")]
-      .filter(r=>r.querySelector(".classTick") && r.querySelector(".classTick").checked)
-      .map(r=>{
-        // get the class label text (the label that contains the class checkbox)
-        const lbl = r.querySelector("label")
-        // label.textContent includes checkbox text; remove nested spec text just in case
-        return (lbl? lbl.textContent : "").trim()
-      })
-      .filter(Boolean)
-    titleEl.textContent = checked.length ? `${baseName} - ${checked.join(", ")}` : baseName
-  } else {
-    // expanded: just show the name
-    titleEl.textContent = baseName
+    titleEl.textContent = `Slot ${i+1}`
   }
 }
 
