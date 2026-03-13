@@ -350,12 +350,31 @@ function onPugToggle(i){
 function toggleSlot(i){
   const slot=document.querySelectorAll(".slot")[i]
   const body=slot.querySelector(".slotBody")
-  body.style.display = body.style.display==="none"?"block":"none"
+  const isCollapsed = body.style.display==="none"
+
+  if(isCollapsed){
+    // expand: show body and reveal all class rows and spec labels (preserve checked states)
+    body.style.display = "block"
+    slot.querySelectorAll(".classRow").forEach(row=>{
+      row.style.display = "block"
+      const specs = row.querySelector(".specs")
+      if(specs) specs.style.display = "inline"
+      row.querySelectorAll(".specLabel").forEach(lbl=>{
+        if(lbl.style.display === "none") lbl.style.display = ""
+      })
+    })
+  } else {
+    // collapse: hide body (header will show only checked classes)
+    body.style.display = "none"
+  }
+
+  updateSlotTitle(i)
 }
 
 function updateSlotTitle(i){
   const slot=document.querySelectorAll(".slot")[i]
   const titleEl=slot.querySelector(".slotTitle")
+  const body=slot.querySelector(".slotBody")
 
   if(slot.querySelector(".pug").checked){
     titleEl.textContent=`PUG`
@@ -365,13 +384,41 @@ function updateSlotTitle(i){
   const selectVal = slot.querySelector(".presetSelect").value
   const nameInputVal = slot.querySelector(".presetName").value.trim()
 
+  let baseName = ""
   if(selectVal){
-    titleEl.textContent = selectVal.replace("wowSlotPreset_","")
+    baseName = selectVal.replace("wowSlotPreset_","")
   } else if(nameInputVal){
-    titleEl.textContent = nameInputVal
+    baseName = nameInputVal
   } else {
-    titleEl.textContent = `Slot ${i+1}`
+    baseName = `Slot ${i+1}`
   }
+
+  // If collapsed, append the list of checked classes (only those with checkbox ticked)
+  if(body.style.display==="none"){
+    const checked = [...slot.querySelectorAll(".classRow")]
+      .filter(r=>r.querySelector(".classTick") && r.querySelector(".classTick").checked)
+      .map(r=>{
+        // get the class label text (the label that contains the class checkbox)
+        const lbl = r.querySelector("label")
+        // label.textContent includes checkbox text; remove nested spec text just in case
+        return (lbl? lbl.textContent : "").trim()
+      })
+      .filter(Boolean)
+    titleEl.textContent = checked.length ? `${baseName} - ${checked.join(", ")}` : baseName
+  } else {
+    // expanded: just show the name
+    titleEl.textContent = baseName
+  }
+}
+
+// helper to get the canonical slot name (without appended checked classes)
+function getSlotName(slot, i){
+  if(slot.querySelector(".pug") && slot.querySelector(".pug").checked) return "PUG"
+  const nameInputVal = slot.querySelector(".presetName") && slot.querySelector(".presetName").value.trim()
+  const selectVal = slot.querySelector(".presetSelect") && slot.querySelector(".presetSelect").value
+  if(nameInputVal) return nameInputVal
+  if(selectVal) return selectVal.replace("wowSlotPreset_","")
+  return `Slot ${i+1}`
 }
 
 function savePreset(i){
@@ -497,9 +544,10 @@ function generate(){
     } else {
       let specs=[]
       slot.querySelectorAll(".classRow").forEach(row=>{
+        // when building choices, consider rows that are visible or hidden — user-selected hiding means ignore
         if(row.style.display==="none") return
         const classBox = row.querySelector(".classTick")
-        if(!classBox.checked) return
+        if(!classBox || !classBox.checked) return
         row.querySelectorAll(".specTick").forEach(spec=>{
           if(spec.checked){
             specs.push({
@@ -557,8 +605,8 @@ function generate(){
       if(!group.some(g=>g.brez)) continue
     }
 
-    // Build nicely aligned lines using slot titles
-    const nameFieldWidth = 10
+    // Build nicely aligned lines using slot names and keep colouring for class + spec and role
+    const nameFieldWidth = 12
     const roleFieldWidth = 10
     const classFieldWidth = 18
 
@@ -569,21 +617,17 @@ function generate(){
     }
 
     const lines = group.map((g,i)=>{
-      const slotTitleEl = slots[i].querySelector('.slotTitle')
-      let slotTitle = slotTitleEl ? slotTitleEl.textContent : `Slot ${i+1}`
-      slotTitle = slotTitle.replace(/\s+/g, ' ')
-
+      const slot = slots[i]
+      const slotName = getSlotName(slot, i)
       const roleText = formatRole(g.role)
       const classText = g.class || ""
       const specText = g.spec || ""
 
-      // compute padding counts based on plain text lengths
-      const namePart = slotTitle + ":"
+      const namePart = slotName + ":"
       const namePad = Math.max(0, nameFieldWidth - namePart.length)
       const rolePad = Math.max(0, roleFieldWidth - roleText.length)
       const classPad = Math.max(0, classFieldWidth - classText.length)
 
-      // build HTML line: use spans for colored role/class, keep padding as literal spaces (pre preserves)
       const nameSection = namePart + " ".repeat(namePad)
       const roleSection = `<span class="${g.role||''}">${roleText}</span>` + " ".repeat(rolePad)
 
@@ -591,13 +635,14 @@ function generate(){
         return nameSection + roleSection
       }
 
-      const classSection = `<span style="color:${classColors[classText] || '#fff'}">${classText}</span>` + " ".repeat(classPad)
-      return nameSection + roleSection + classSection + specText
+      const color = classColors[classText] || '#fff'
+      const classSection = `<span style="color:${color}">${classText}</span>` + " ".repeat(classPad)
+      const specSection = `<span style="color:${color}">${specText}</span>`
+      return nameSection + roleSection + classSection + specSection
     })
 
     const resultDiv = document.getElementById("result")
     const pre = document.createElement('pre')
-    // use innerHTML so our spans are rendered; pre preserves spacing/newlines
     pre.innerHTML = lines.join("\n")
     resultDiv.innerHTML = ""
     resultDiv.appendChild(pre)
