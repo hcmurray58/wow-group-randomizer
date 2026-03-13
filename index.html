@@ -739,11 +739,21 @@ function generate(){
 
     // sort: Tank, Healer, then DPS alphabetical by slot name
     const rolePriority = {tank:0, healer:1, dps:2}
-    const sortedGroup = [...group].sort((a,b)=>{
+    const sortedGroup = [...group].sort((a,b) => {
       const pa = rolePriority[a.role] ?? 99
       const pb = rolePriority[b.role] ?? 99
-      if(pa !== pb) return pa - pb
-      // same role: alphabetical by slot name
+      if (pa !== pb) return pa - pb
+
+      // same role
+      // For DPS: non-PUGs first (alphabetical), then PUG DPS last
+      if (a.role === 'dps' && b.role === 'dps') {
+        if (!!a.pug !== !!b.pug) return a.pug ? 1 : -1
+        const nameA = getSlotName(slots[a.slotIndex], a.slotIndex)
+        const nameB = getSlotName(slots[b.slotIndex], b.slotIndex)
+        return nameA.localeCompare(nameB)
+      }
+
+      // Non-DPS: alphabetical by slot name
       const nameA = getSlotName(slots[a.slotIndex], a.slotIndex)
       const nameB = getSlotName(slots[b.slotIndex], b.slotIndex)
       return nameA.localeCompare(nameB)
@@ -802,48 +812,10 @@ function generate(){
     canvas.height = Math.ceil(canvasHeight)
     const ctx = canvas.getContext('2d')
 
-    // nicer background: rounded rect with subtle gradient and border
-    function roundRect(ctx,x,y,w,h,r){
-      const rr = Math.min(r, w/2, h/2)
-      ctx.beginPath()
-      ctx.moveTo(x+rr, y)
-      ctx.arcTo(x+w, y,     x+w, y+h, rr)
-      ctx.arcTo(x+w, y+h,   x,   y+h, rr)
-      ctx.arcTo(x,   y+h,   x,   y,   rr)
-      ctx.arcTo(x,   y,     x+w, y,   rr)
-      ctx.closePath()
-    }
+    // background
+    ctx.fillStyle = "#111"
+    ctx.fillRect(0,0,canvas.width,canvas.height)
 
-    // background gradient
-    const bgGrad = ctx.createLinearGradient(0,0,0,canvas.height)
-    bgGrad.addColorStop(0, "#141414")
-    bgGrad.addColorStop(1, "#0c0c0c")
-
-    // fill rounded background slightly inset for a neat border
-    const inset = 2
-    roundRect(ctx, inset, inset, canvas.width - inset*2, canvas.height - inset*2, 8)
-    ctx.fillStyle = bgGrad
-    ctx.fill()
-
-    // subtle inner border
-    ctx.lineWidth = 2
-    ctx.strokeStyle = "rgba(255,255,255,0.04)"
-    ctx.stroke()
-
-    // subtle separators between columns to guide the eye
-    ctx.save()
-    ctx.globalAlpha = 0.08
-    ctx.strokeStyle = "#ffffff"
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    ctx.moveTo(xRole - 6, 8)
-    ctx.lineTo(xRole - 6, canvas.height - 8)
-    ctx.moveTo(xClass - 6, 8)
-    ctx.lineTo(xClass - 6, canvas.height - 8)
-    ctx.stroke()
-    ctx.restore()
-
-    // nicer text settings
     ctx.font = font
     ctx.textBaseline = "top"
 
@@ -958,10 +930,6 @@ function generate(){
     img.alt = "Group output image"
     img.style.maxWidth = "100%"
     img.style.display = "block"
-    img.style.border = "1px solid rgba(255,255,255,0.06)"
-    img.style.borderRadius = "8px"
-    img.style.boxShadow = "0 8px 24px rgba(0,0,0,0.6)"
-    img.style.background = "#0b0b0b"
     resultDiv.appendChild(img)
 
     // copy button
