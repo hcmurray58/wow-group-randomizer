@@ -728,9 +728,6 @@ function generate(){
     }
 
     // Build nicely aligned lines using slot names and keep colouring for class + spec and role
-    const nameFieldWidth = 160
-    const roleFieldWidth = 80
-    const classFieldWidth = 260   // increased so long class names (Demon Hunter / Death Knight) don't overlap
     const lineHeight = 20
     const font = "14px monospace"
 
@@ -766,108 +763,122 @@ function generate(){
       }
     })
 
-    // Build simple textual fallback (keeps previous behaviour)
-    const textLines = linesData.map(ld=>{
-      const namePart = padRight(ld.slotName + ":", Math.floor(nameFieldWidth/8))
-      const rolePart = padRight(ld.roleText, Math.floor(roleFieldWidth/8))
-      if(ld.isPug) return namePart + rolePart
-      return namePart + rolePart + padRight(ld.className, Math.floor(classFieldWidth/8)) + ld.specName
-    })
+    // determine column widths dynamically so columns line up vertically,
+    // with at least a 3-character gap between columns
+    const tempCanvas = document.createElement('canvas')
+    const tempCtx = tempCanvas.getContext('2d')
+    tempCtx.font = font
+    const charW = tempCtx.measureText('M').width
+    const minGap = 3 * charW
 
-    // create canvas and draw coloured output
-    const canvasWidth = nameFieldWidth + roleFieldWidth + classFieldWidth + 40
-    // compute footer lines: Lust providers + Battle Rez providers (+ optional requirement lines)
+    const measureNameW = (t) => tempCtx.measureText((t||'') + ':').width
+    const measureRoleW = (t) => tempCtx.measureText(t||'').width
+    const measureClassW = (t) => tempCtx.measureText(t||'').width
+    const measureSpecW = (t) => tempCtx.measureText(t||'').width
+
+    const maxNameW = Math.max(0, ...linesData.map(ld => measureNameW(ld.slotName)))
+    const maxRoleW = Math.max(0, ...linesData.map(ld => measureRoleW(ld.roleText)))
+    const maxClassW = Math.max(0, ...linesData.map(ld => measureClassW(ld.className)))
+    const maxSpecW = Math.max(0, ...linesData.map(ld => measureSpecW(ld.specName)))
+
+    const nameFieldWidth = Math.ceil(maxNameW + minGap)
+    const roleFieldWidth = Math.ceil(maxRoleW + minGap)
+    const classFieldWidth = Math.ceil(maxClassW + minGap)
+
+    const leftPadding = 10
+    const rightPadding = 10
+
+    // compute footer lines (Lust + Brez + optional requirement status lines)
     const requireLust = document.getElementById("lustRequired").checked
     const requireBrez = document.getElementById("brezRequired").checked
-    let footerLines = 2 // Lust + Battle Rez
+    let footerLines = 2
     if(requireLust) footerLines += 1
     if(requireBrez) footerLines += 1
-    // top padding 10, bottom padding 10
+
+    const canvasWidth = leftPadding + nameFieldWidth + roleFieldWidth + classFieldWidth + maxSpecW + rightPadding + 6
     const canvasHeight = 10 + linesData.length * lineHeight + footerLines * lineHeight + 10
-     const canvas = document.createElement('canvas')
-     canvas.width = canvasWidth
-     canvas.height = canvasHeight
-     const ctx = canvas.getContext('2d')
- 
-     // background
-     ctx.fillStyle = "#111"
-     ctx.fillRect(0,0,canvas.width,canvas.height)
- 
-     ctx.font = font
-     ctx.textBaseline = "top"
- 
-     // draw each line
-     linesData.forEach((ld, idx)=>{
-       const y = 10 + idx * lineHeight
-       // name (white)
-       ctx.fillStyle = "#eee"
-       ctx.fillText(ld.slotName + ":", 10, y)
- 
-       // role (colour via role classes)
-       const roleX = 10 + nameFieldWidth
-       const roleColor = ld.role === 'tank' ? '#4aa3ff' : (ld.role === 'healer' ? '#3ddc84' : '#ff6b6b') // DPS should be red
-       ctx.fillStyle = roleColor
-       ctx.fillText(ld.roleText, roleX, y)
- 
-       // class + spec
-       const classX = roleX + roleFieldWidth
-       if(ld.isPug){
-         // nothing more
-         return
-       }
-       ctx.fillStyle = ld.color
-       ctx.fillText(ld.className, classX, y)
-       // spec positioned after the class column
-       const specX = classX + classFieldWidth + 6
-       ctx.fillText(ld.specName, specX, y)
-     })
- 
-     // providers info at bottom
-     const lustProviders = linesData.filter(ld=>{
-       if(ld.isPug) return false
-       const cls = classes[ld.className] || []
-       const specEntry = cls.find(s=>s.spec===ld.specName) || {}
-       return !!specEntry.lust
-     }).map(ld=>ld.slotName)
-     const brezProviders = linesData.filter(ld=>{
-       if(ld.isPug) return false
-       const cls = classes[ld.className] || []
-       const specEntry = cls.find(s=>s.spec===ld.specName) || {}
-       return !!specEntry.brez
-     }).map(ld=>ld.slotName)
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(300, Math.ceil(canvasWidth))
+    canvas.height = Math.ceil(canvasHeight)
+    const ctx = canvas.getContext('2d')
 
-     let footerY = 10 + linesData.length * lineHeight + 6
-     ctx.fillStyle = "#eee"
-     ctx.fillText("Lust providers: " + (lustProviders.length ? lustProviders.join(", ") : "(none)"), 10, footerY)
-     footerY += lineHeight
-     ctx.fillText("Battle Rez providers: " + (brezProviders.length ? brezProviders.join(", ") : "(none)"), 10, footerY)
-     footerY += lineHeight
+    // background
+    ctx.fillStyle = "#111"
+    ctx.fillRect(0,0,canvas.width,canvas.height)
 
-     // (requireLust / requireBrez already read above)
-     if(requireLust || requireBrez){
-       if(requireLust){
-         ctx.fillStyle = lustProviders.length ? "#3ddc84" : "#ff6b6b"
-         ctx.fillText("Lust: " + (lustProviders.length ? "OK" : "MISSING"), 10, footerY)
-         footerY += lineHeight
-       }
-       if(requireBrez){
-         ctx.fillStyle = brezProviders.length ? "#3ddc84" : "#ff6b6b"
-         ctx.fillText("Battle Rez: " + (brezProviders.length ? "OK" : "MISSING"), 10, footerY)
-         footerY += lineHeight
-       }
-     }
+    ctx.font = font
+    ctx.textBaseline = "top"
+
+    // draw each line using computed column X positions
+    const xName = leftPadding
+    const xRole = xName + nameFieldWidth
+    const xClass = xRole + roleFieldWidth
+    const xSpec = xClass + classFieldWidth
+
+    linesData.forEach((ld, idx) => {
+      const y = 10 + idx * lineHeight
+      // name
+      ctx.fillStyle = "#eee"
+      ctx.fillText(ld.slotName + ":", xName, y)
+
+      // role (tank/ healer / DPS - DPS red)
+      const roleColor = ld.role === 'tank' ? '#4aa3ff' : (ld.role === 'healer' ? '#3ddc84' : '#ff6b6b')
+      ctx.fillStyle = roleColor
+      ctx.fillText(ld.roleText, xRole, y)
+
+      if(ld.isPug) return
+
+      // class and spec
+      ctx.fillStyle = ld.color
+      ctx.fillText(ld.className, xClass, y)
+      ctx.fillText(ld.specName, xSpec, y)
+    })
+
+    // providers info at bottom
+    const lustProviders = linesData.filter(ld=>{
+      if(ld.isPug) return false
+      const cls = classes[ld.className] || []
+      const specEntry = cls.find(s=>s.spec===ld.specName) || {}
+      return !!specEntry.lust
+    }).map(ld=>ld.slotName)
+    const brezProviders = linesData.filter(ld=>{
+      if(ld.isPug) return false
+      const cls = classes[ld.className] || []
+      const specEntry = cls.find(s=>s.spec===ld.specName) || {}
+      return !!specEntry.brez
+    }).map(ld=>ld.slotName)
+
+    let footerY = 10 + linesData.length * lineHeight + 6
+    ctx.fillStyle = "#eee"
+    ctx.fillText("Lust providers: " + (lustProviders.length ? lustProviders.join(", ") : "(none)"), 10, footerY)
+    footerY += lineHeight
+    ctx.fillText("Battle Rez providers: " + (brezProviders.length ? brezProviders.join(", ") : "(none)"), 10, footerY)
+    footerY += lineHeight
+
+    // (requireLust / requireBrez already read above)
+    if(requireLust || requireBrez){
+      if(requireLust){
+        ctx.fillStyle = lustProviders.length ? "#3ddc84" : "#ff6b6b"
+        ctx.fillText("Lust: " + (lustProviders.length ? "OK" : "MISSING"), 10, footerY)
+        footerY += lineHeight
+      }
+      if(requireBrez){
+        ctx.fillStyle = brezProviders.length ? "#3ddc84" : "#ff6b6b"
+        ctx.fillText("Battle Rez: " + (brezProviders.length ? "OK" : "MISSING"), 10, footerY)
+        footerY += lineHeight
+      }
+    }
 
     // show both image and text fallback; add copy button
     const resultDiv = document.getElementById("result")
     resultDiv.innerHTML = ""
 
-    // image
+    // image only
     const img = document.createElement('img')
     img.src = canvas.toDataURL('image/png')
     img.alt = "Group output image"
     img.style.maxWidth = "100%"
     img.style.display = "block"
-    img.style.marginBottom = "8px"
     resultDiv.appendChild(img)
 
     // copy button
@@ -897,7 +908,7 @@ function generate(){
     }
     resultDiv.appendChild(copyBtn)
 
-    // only image + copy button (no text fallback)
+    // (no text fallback)
 
     return
   }
