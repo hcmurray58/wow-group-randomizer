@@ -812,21 +812,71 @@ function generate(){
     canvas.height = Math.ceil(canvasHeight)
     const ctx = canvas.getContext('2d')
 
-    // background
-    ctx.fillStyle = "#111"
-    ctx.fillRect(0,0,canvas.width,canvas.height)
+    // Aesthetic background: rounded panel with subtle gradient and border.
+    function roundRect(ctx, x, y, w, h, r) {
+      const rr = Math.max(0, Math.min(r, w / 2, h / 2))
+      ctx.beginPath()
+      ctx.moveTo(x + rr, y)
+      ctx.arcTo(x + w, y, x + w, y + h, rr)
+      ctx.arcTo(x + w, y + h, x, y + h, rr)
+      ctx.arcTo(x, y + h, x, y, rr)
+      ctx.arcTo(x, y, x + w, y, rr)
+      ctx.closePath()
+    }
 
-    ctx.font = font
-    ctx.textBaseline = "top"
+    const inset = 6
+    const panelX = inset
+    const panelY = inset
+    const panelW = canvas.width - inset * 2
+    const panelH = canvas.height - inset * 2
 
-    // draw each line using computed column X positions
+    // subtle vertical gradient
+    const g = ctx.createLinearGradient(0, panelY, 0, panelY + panelH)
+    g.addColorStop(0, "#161616")
+    g.addColorStop(1, "#0b0b0b")
+
+    roundRect(ctx, panelX, panelY, panelW, panelH, 8)
+    ctx.fillStyle = g
+    ctx.fill()
+
+    // outer border
+    ctx.lineWidth = 1
+    ctx.strokeStyle = "rgba(255,255,255,0.06)"
+    ctx.stroke()
+
+    // compute column X positions (so separators can use them)
     const xName = leftPadding
     const xRole = xName + nameFieldWidth
     const xClass = xRole + roleFieldWidth
     const xSpec = xClass + classFieldWidth
 
+    // subtle column separators to aid alignment
+    ctx.save()
+    ctx.globalAlpha = 0.06
+    ctx.strokeStyle = "#ffffff"
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(xRole - 6, panelY + 8)
+    ctx.lineTo(xRole - 6, panelY + panelH - 8)
+    ctx.moveTo(xClass - 6, panelY + 8)
+    ctx.lineTo(xClass - 6, panelY + panelH - 8)
+    ctx.stroke()
+    ctx.restore()
+
+    // header subtle title (optional, small)
+    ctx.font = "bold 12px sans-serif"
+    ctx.fillStyle = "rgba(255,255,255,0.85)"
+    const title = "Group"
+    ctx.fillText(title, panelX + 12, panelY + 8)
+
+    // restore monospace for the table text
+    ctx.font = font
+    ctx.textBaseline = "top"
+
+    // draw each line using computed column X positions
+    const rowTop = panelY + 30
     linesData.forEach((ld, idx) => {
-      const y = 10 + idx * lineHeight
+      const y = rowTop + idx * lineHeight
       // name
       ctx.fillStyle = "#eee"
       ctx.fillText(ld.slotName + ":", xName, y)
@@ -841,8 +891,22 @@ function generate(){
       // class and spec
       ctx.fillStyle = ld.color
       ctx.fillText(ld.className, xClass, y)
+      ctx.fillStyle = "#ddd"
       ctx.fillText(ld.specName, xSpec, y)
     })
+
+    // lightly separate rows with tiny dividers for readability
+    ctx.save()
+    ctx.globalAlpha = 0.03
+    ctx.strokeStyle = "#000"
+    for (let i = 0; i < linesData.length; i++) {
+      const y = rowTop + (i + 1) * lineHeight - 6
+      ctx.beginPath()
+      ctx.moveTo(panelX + 8, y)
+      ctx.lineTo(panelX + panelW - 8, y)
+      ctx.stroke()
+    }
+    ctx.restore()
 
     // providers info at bottom
     const lustProvidersData = linesData.filter(ld=>{
