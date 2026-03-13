@@ -353,31 +353,45 @@ function toggleSlot(i){
   const isCollapsed = body.style.display==="none"
 
   if(isCollapsed){
-    // expand: show body and reveal all class rows and spec labels (preserve checked states)
+    // expand: show body and reveal all class rows
     body.style.display = "block"
     slot.querySelectorAll(".classRow").forEach(row=>{
       row.style.display = "block"
-      const specs = row.querySelector(".specs")
-      if(specs){
-        // show specs only if the class is checked, otherwise hide
-        if(row.querySelector(".classTick").checked){
-          specs.style.display = "inline"
-          row.querySelectorAll(".specLabel").forEach(lbl=>{
-            if(lbl.style.display === "none") lbl.style.display = ""
-          })
-        } else {
-          specs.style.display = "none"
-        }
+      const specSpan = row.querySelector(".specs")
+      const classTick = row.querySelector(".classTick")
+      if(!specSpan) return
+      // when expanded: show specs container only for classes that are checked,
+      // and inside that show only spec labels that correspond to checked spec inputs
+      if(classTick && classTick.checked){
+        specSpan.style.display = "inline"
+        row.querySelectorAll(".specLabel").forEach(lbl=>{
+          const cb = lbl.querySelector("input")
+          lbl.style.display = (cb && cb.checked) ? "" : "none"
+        })
+      } else {
+        specSpan.style.display = "none"
+        // keep individual specLabel display as-is (they'll be re-evaluated when expanded)
       }
     })
   } else {
-    // collapse: hide unselected classes (keep only rows where class checkbox is checked)
+    // collapse: hide unselected classes; for selected classes show all their specs
     body.style.display = "none"
     slot.querySelectorAll(".classRow").forEach(row=>{
       const classChecked = !!row.querySelector(".classTick").checked
-      row.style.display = classChecked ? "block" : "none"
-      const specs = row.querySelector(".specs")
-      if(specs) specs.style.display = "none" // hide specs when collapsed
+      const specSpan = row.querySelector(".specs")
+      if(classChecked){
+        row.style.display = "block"
+        if(specSpan){
+          specSpan.style.display = "inline"
+          // show all spec labels for selected classes
+          row.querySelectorAll(".specLabel").forEach(lbl=>{
+            lbl.style.display = ""
+          })
+        }
+      } else {
+        row.style.display = "none"
+        if(specSpan) specSpan.style.display = "none"
+      }
     })
   }
 
