@@ -891,7 +891,8 @@ function generate(){
       // class and spec
       ctx.fillStyle = ld.color
       ctx.fillText(ld.className, xClass, y)
-      ctx.fillStyle = "#ddd"
+      // draw spec using same colour as the class
+      ctx.fillStyle = ld.color
       ctx.fillText(ld.specName, xSpec, y)
     })
 
