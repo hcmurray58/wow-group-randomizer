@@ -11,48 +11,65 @@ body{
   color:#eee;
   margin:20px;
   padding-bottom:5cm; /* added ~5cm bottom space for easier scrolling */
+  /* center top-level content for a balanced layout */
+  display: block;
+}
+
+/* center title image */
+h1{
+  text-align:center;
+  margin:0 0 12px 0;
 }
 
 #topControls{
-  margin-bottom:12px; /* gap between top tickboxes and slots */
+  margin:0 auto 12px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;          /* center the vertical list of tickboxes */
+  gap:6px;
 }
 
 /* compact header row */
 .slot{
   border:1px solid #4d4d4d; /* slightly lighter border (~10% lighter) */
   margin:0 auto 10px; /* center slot and keep vertical spacing */
-  max-width: calc(180px + (120px + 3ch) * 4 + 48px); /* fit class column + four spec columns + padding */
-  width: 100%;
+-  max-width: calc(180px + (120px + 3ch) * 4 + 48px); /* fit class column + four spec columns + padding */
+-  width: 100%;
++  max-width:820px; /* widen so last spec fits; centered via margin auto */
++  width: auto;
   box-sizing: border-box;
 }
 
-.slotHeader{
-  background:#2b2b2b; /* ~10% lighter than #222 for a subtle lift */
-  padding:6px;
-  font-weight:bold;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  cursor:pointer; /* whole bar toggles */
+/* make the Generate button centered */
+button.wc-btn.wc-primary{
+  display:block;
+  margin:12px auto;
 }
 
-.slotHeader .slotTitle{
-  min-width:140px;
-  font-weight:700;
-  /* make slot title use the wc-input aesthetic so it visually matches the buttons/inputs */
+/* result area centered (image + copy button) */
+.result{
+  margin-top:25px;
+  font-size:18px;
+  text-align:center;
+}
+
+/* ensure output image is centered and has no extra bottom margin */
+.result img{
+  display:block;
+  margin:0 auto 8px auto;
+}
+
+/* copy button inside result will be centered by .result{text-align:center} */
+.result .wc-btn{
   display:inline-block;
-  padding:6px 10px;
-  border-radius:6px;
-  background: linear-gradient(#fff7df, #e0c07a);
-  color:#1b1300;
-  border:1px solid #6b4a12;
-  box-shadow: inset 0 2px 0 rgba(255,255,255,0.25), 0 3px 0 #5a3e10;
-  font-weight:700;
 }
 
-.slotBody{
-  padding:10px;
-  /* remain visible; two states control which rows are shown */
+/* keep slots container items centered */
+#slots{
+  display:block;
+  margin:0 auto;
+  width:100%;
+  max-width:900px;
 }
 
 /* align class column and spec column so tickboxes/names line up */
@@ -61,141 +78,45 @@ body{
   display:flex;
   align-items:flex-start;
   gap:8px;
+  flex-wrap:wrap;
 }
 
-/* class label column */
-.classRow > label{
-  display:inline-block;
-  width:180px;          /* reduced so gap between class and specs is smaller */
-  box-sizing:border-box;
-  vertical-align:top;
-}
-
-/* hide the class checkbox input (class tickboxes not required any more) */
-.classRow > label input.classTick{
-  display:none;
-}
-
-/* specs column occupies remaining space and aligns */
+/* ensure specs area wraps nicely on narrow viewports */
 .specs{
   display:inline-block;
   width:calc(100% - 190px);
   box-sizing:border-box;
   margin-left:0;
+  flex:1 1 auto;
 }
 
-.specs label{
-  margin-right:8px;
-  display:inline-block;
-  /* make spec labels 3 characters wider */
-  min-width: calc(120px + 3ch);      /* keep spec labels consistent width for nicer alignment */
+/* make the slot title pill keep centered look inside header-controls */
+.slotHeader{
+  background:#2b2b2b; /* ~10% lighter than #222 for a subtle lift */
+  padding:6px;
+  font-weight:bold;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer; /* whole bar toggles */
+  justify-content:space-between;
 }
 
-/* role colours */
-.tank{color:#4aa3ff;}
-.healer{color:#3ddc84;}
-.dps{color:#ff6b6b;}
-
-button{
-  padding:4px 10px;
-  margin-left:4px;
-}
-
-.result{
-  margin-top:25px;
-  font-size:18px;
-}
-
-/* add monospace formatting for generated output (text fallback) */
-.result pre{
-  font-family:monospace;
-  font-size:14px;
-  line-height:1.2;
-  white-space:pre;
-  margin:0 0 8px 0;
-}
-
+/* make header-controls centered but allow wrapping */
 .header-controls{
   display:flex;
   align-items:center;
   gap:6px;
   flex-wrap:wrap;
+  justify-content:flex-end;
 }
 
-/* ensure select and inputs are compact in header */
-.slotHeader input[type="text"],
-.slotHeader select{
-  padding:4px;
-  font-size:13px;
-  background:#222;
-  color:#eee;
-  border:1px solid #555;
-}
-
-.slotHeader label{
-  cursor:pointer;
-}
-
-.updateToggle{
-  display:inline-block;
-  padding:6px 10px;
-  border-radius:6px;
-  background: linear-gradient(#ffd86b, #e09a2e);
-  color:#0f0b00;
-  border:1px solid #7a5314;
-  box-shadow: 0 3px 0 #664714;
-  font-size:13px;
-  cursor:pointer;
-  text-decoration:none;
-  text-align:center;
-  vertical-align:middle;
-}
-
-/* Warcraft-like button styles (applied only to the specific buttons via classes) */
-.wc-btn{
-  padding:6px 12px;
-  font-weight:700;
-  font-family: "Trebuchet MS", Arial, sans-serif;
-  color:#1b1300;
-  border-radius:6px;
-  cursor:pointer;
-  transition: transform .06s ease, box-shadow .06s ease, filter .06s ease;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  text-shadow: 0 1px 0 rgba(255,255,255,0.18);
-  border:1px solid #6b4a12;
-  box-shadow: 0 5px 0 #5a3e10, 0 8px 20px rgba(0,0,0,0.45);
-  background: linear-gradient(#f7df9a, #c28f25);
-}
-
-/* input/select aesthetic to match Warcraft buttons */
-.wc-input{
-  padding:6px 10px;
-  font-weight:700;
-  font-family: "Trebuchet MS", Arial, sans-serif;
-  font-size:13px;
-  color:#1b1300;
-  background: linear-gradient(#fff7df, #e0c07a);
-  border:1px solid #6b4a12;
-  border-radius:6px;
-  box-shadow: inset 0 2px 0 rgba(255,255,255,0.25), 0 3px 0 #5a3e10;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-}
-
-/* smaller variant for compact place (select near header) */
-.wc-input.small{
-  padding:4px 8px;
-  font-size:13px;
-  border-radius:5px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 2px 0 #5a3e10;
-}
-
-/* Hover/active for inputs */
-.wc-input:focus{
-  outline:none;
-  box-shadow: 0 6px 0 rgba(90,62,16,0.3);
+/* tiny responsive tweak: reduce max-width on small screens */
+@media (max-width:760px){
+  .slot{ max-width: 96%; }
+  .classRow{ gap:6px; }
+  .classRow > label{ width:160px; }
+  .specs{ width: calc(100% - 170px); }
 }
 </style>
 </head>
