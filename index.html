@@ -54,15 +54,20 @@ body{
 /* class label column */
 .classRow > label{
   display:inline-block;
-  width:160px;          /* fixed width for class column */
+  width:220px;          /* increased width to avoid overlap for long class names */
   box-sizing:border-box;
   vertical-align:top;
+}
+
+/* hide the class checkbox input (class tickboxes not required any more) */
+.classRow > label input.classTick{
+  display:none;
 }
 
 /* specs column occupies remaining space and aligns */
 .specs{
   display:inline-block;
-  width:calc(100% - 170px);
+  width:calc(100% - 230px);
   box-sizing:border-box;
   margin-left:0;
 }
@@ -299,27 +304,7 @@ function createSlots(){
       specSpan.style.display = "none"
       row.querySelectorAll(".specTick").forEach(s=>s.checked = false)
 
-      // when class tick changes: selected classes always show all specs (labels visible)
-      classBox.addEventListener("change",()=>{
-        const slotElem = row.closest('.slot')
-        const idx = Array.prototype.indexOf.call(document.querySelectorAll('.slot'), slotElem)
-
-        if(classBox.checked){
-          specSpan.style.display = "inline"
-          row.querySelectorAll(".specLabel").forEach(lbl=> lbl.style.display = "")
-          row.style.display = "block"
-        } else {
-          const state = slotElem.dataset.state || 'selected-only'
-          if(state === 'selected-only'){
-            row.style.display = "none"
-          } else {
-            row.style.display = "block"
-            specSpan.style.display = "none"
-          }
-        }
-
-        if(typeof idx === "number" && idx>=0) updateSlotTitle(idx)
-      })
+      // class tickboxes are hidden and not required; visibility controlled by spec ticks + state
 
       // spec change: if any spec is checked then clear PUG for that slot and enable UI; always ensure state applied
       row.querySelectorAll('.specTick').forEach(s=>{
@@ -450,23 +435,17 @@ function applyState(i){
   const state = slot.dataset.state || 'selected-only'
   const classRows = slot.querySelectorAll(".classRow")
   classRows.forEach(row=>{
-    const classTick = row.querySelector(".classTick")
     const specSpan = row.querySelector(".specs")
+    const anySpecChecked = row.querySelectorAll('.specTick:checked').length > 0
 
     if(state === 'all'){
-      // show every class row
+      // show every class row and show all spec labels
       row.style.display = "block"
-      if(classTick && classTick.checked){
-        // selected classes: show all spec labels
-        if(specSpan) specSpan.style.display = "inline"
-        row.querySelectorAll(".specLabel").forEach(lbl=> lbl.style.display = "")
-      } else {
-        // unselected classes: hide specs
-        if(specSpan) specSpan.style.display = "none"
-      }
+      if(specSpan) specSpan.style.display = "inline"
+      row.querySelectorAll(".specLabel").forEach(lbl=> lbl.style.display = "")
     } else {
-      // selected-only: only show rows where class is checked; for those show all specs
-      if(classTick && classTick.checked){
+      // selected-only: only show rows where at least one spec is checked; show all specs for those
+      if(anySpecChecked){
         row.style.display = "block"
         if(specSpan) specSpan.style.display = "inline"
         row.querySelectorAll(".specLabel").forEach(lbl=> lbl.style.display = "")
@@ -669,10 +648,7 @@ function generate(){
     } else {
       let specs=[]
       slot.querySelectorAll(".classRow").forEach(row=>{
-        // only consider rows currently visible (selected-only hides unselected classes)
-        if(row.style.display==="none") return
-        const classBox = row.querySelector(".classTick")
-        if(!classBox || !classBox.checked) return
+        // collect spec ticks regardless of class tickboxes or visibility
         row.querySelectorAll(".specTick").forEach(spec=>{
           if(spec.checked){
             specs.push({
@@ -740,7 +716,7 @@ function generate(){
     // Build nicely aligned lines using slot names and keep colouring for class + spec and role
     const nameFieldWidth = 160
     const roleFieldWidth = 80
-    const classFieldWidth = 200
+    const classFieldWidth = 260   // increased so long class names (Demon Hunter / Death Knight) don't overlap
     const lineHeight = 20
     const font = "14px monospace"
 
@@ -815,7 +791,7 @@ function generate(){
  
        // role (colour via role classes)
        const roleX = 10 + nameFieldWidth
-       const roleColor = ld.role === 'tank' ? '#4aa3ff' : (ld.role === 'healer' ? '#3ddc84' : '#fff')
+       const roleColor = ld.role === 'tank' ? '#4aa3ff' : (ld.role === 'healer' ? '#3ddc84' : '#ff6b6b') // DPS should be red
        ctx.fillStyle = roleColor
        ctx.fillText(ld.roleText, roleX, y)
  
@@ -827,8 +803,9 @@ function generate(){
        }
        ctx.fillStyle = ld.color
        ctx.fillText(ld.className, classX, y)
-       // spec slightly after class column
-       ctx.fillText(ld.specName, classX + classFieldWidth - 140, y)
+       // spec positioned after the class column
+       const specX = classX + classFieldWidth + 6
+       ctx.fillText(ld.specName, specX, y)
      })
  
      // providers info at bottom
