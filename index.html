@@ -874,7 +874,7 @@ function generate(){
     ctx.textBaseline = "top"
 
     // draw each line using computed column X positions
-    const rowTop = panelY + 30
+    const rowTop = panelY
     linesData.forEach((ld, idx) => {
       const y = rowTop + idx * lineHeight
       // name
