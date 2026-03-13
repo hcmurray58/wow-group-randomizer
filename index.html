@@ -125,16 +125,20 @@ body{
   margin: 0 auto 12px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px; /* slightly tighter spacing between checkboxes */
+  align-items: center; /* keep the block centered on the page */
+  gap: 4px;
 }
 
-/* ensure each label in top controls is compact and centered */
+/* make each label a fixed-width row so the checkbox column lines up */
 #topControls label{
-  display:block;
-  margin:0;
-  padding:2px 0;
-  text-align:center;
+  width: 220px;           /* fixed width so inputs align vertically */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-start; /* checkbox at same x for every row */
+  padding: 2px 0;
+  box-sizing: border-box;
+  text-align: left;       /* keep label text left-aligned inside the fixed width */
 }
 
 #slots{
