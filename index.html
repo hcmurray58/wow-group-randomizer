@@ -131,6 +131,52 @@ button{
   font-size:13px;
   margin-left:6px;
 }
+
+/* Warcraft-like button styles (applied only to the specific buttons via classes) */
+.wc-btn{
+  padding:6px 12px;
+  font-weight:700;
+  font-family: "Trebuchet MS", Arial, sans-serif;
+  color:#1b1300;
+  border-radius:6px;
+  cursor:pointer;
+  transition: transform .06s ease, box-shadow .06s ease, filter .06s ease;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.18);
+  border:1px solid #6b4a12;
+  box-shadow: 0 5px 0 #5a3e10, 0 8px 20px rgba(0,0,0,0.45);
+  background: linear-gradient(#f7df9a, #c28f25);
+}
+.wc-primary{
+  background: linear-gradient(#ffd86b, #e09a2e);
+  border-color: #7a5314;
+  box-shadow: 0 6px 0 #664714, 0 12px 28px rgba(0,0,0,0.55);
+  color:#0f0b00;
+  font-size:15px;
+}
+.wc-small{
+  padding:4px 8px;
+  font-size:13px;
+  border-radius:4px;
+  box-shadow: 0 3px 0 #564012;
+}
+
+/* Hover / active affordances */
+.wc-btn:hover{
+  transform: translateY(-1px);
+  filter:brightness(1.03);
+  box-shadow: 0 8px 0 #5a3e10, 0 12px 26px rgba(0,0,0,0.45);
+}
+.wc-btn:active{
+  transform: translateY(1px);
+  box-shadow: 0 3px 0 #4a3008;
+}
+.wc-btn:disabled{
+  opacity:0.5;
+  cursor:not-allowed;
+  filter:grayscale(0.4) saturate(0.6);
+}
 </style>
 </head>
 <body>
@@ -150,7 +196,7 @@ button{
   <label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label>
 </div>
 
-<button onclick="generate()">Generate Group</button>
+<button class="wc-btn wc-primary" onclick="generate()">Generate Group</button>
 
 <div class="result" id="result"></div>
 
@@ -256,7 +302,7 @@ function createSlots(){
           <select class="presetSelect" onchange="presetSelected(${i})" onclick="event.stopPropagation()"></select>
           <span class="updateToggle" onclick="toggleState(${i}); event.stopPropagation()">update</span>
           <input placeholder="Preset name" class="presetName" onclick="event.stopPropagation()">
-          <button onclick="savePreset(${i}); event.stopPropagation();">Save</button>
+          <button class="wc-btn wc-small" onclick="savePreset(${i}); event.stopPropagation();">Save</button>
         </div>
       </div>
       <div class="slotBody">
@@ -1000,6 +1046,7 @@ function generate(){
     // copy button
     const copyBtn = document.createElement('button')
     copyBtn.textContent = "Copy image"
+    copyBtn.className = "wc-btn wc-primary"
     copyBtn.onclick = async function(){
       try{
         // canvas -> blob -> clipboard
