@@ -806,7 +806,7 @@ function generate(){
     if(requireBrez) footerLines += 1
 
     const canvasWidth = leftPadding + nameFieldWidth + roleFieldWidth + classFieldWidth + maxSpecW + rightPadding + 6
-    const canvasHeight = 10 + linesData.length * lineHeight + footerLines * lineHeight + 20
+    const canvasHeight = 10 + linesData.length * lineHeight + footerLines * lineHeight + 10
     const canvas = document.createElement('canvas')
     canvas.width = Math.max(300, Math.ceil(canvasWidth))
     canvas.height = Math.ceil(canvasHeight)
