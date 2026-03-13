@@ -39,7 +39,7 @@ body{
 
 .slotBody{
   padding:10px;
-  display:none; /* collapsed by default */
+  /* remain visible; two states control which rows are shown */
 }
 
 .classRow{
@@ -47,7 +47,6 @@ body{
 }
 
 .specs{
-  display:none;
   margin-left:10px;
 }
 
@@ -101,7 +100,7 @@ button{
 
 .updateToggle{
   color:#6cf;
-  cursor:default;
+  cursor:pointer;
   text-decoration:underline;
   font-size:13px;
   margin-left:6px;
@@ -221,18 +220,16 @@ function createSlots(){
     const slot=document.createElement("div")
     slot.className="slot"
 
-    // header toggles the slot body. controls stopPropagation where appropriate.
+    // header toggles the slot state. individual controls stopPropagation so interacting them doesn't toggle.
     slot.innerHTML=`
-      <div class="slotHeader" onclick="toggleSlot(${i})">
+      <div class="slotHeader" onclick="toggleState(${i})">
         <span class="slotTitle">Slot ${i+1}</span>
-        <div class="header-controls" onclick="event.stopPropagation()">
-          <label style="margin-right:6px">
-            <input type="checkbox" class="pug" onchange="onPugToggle(${i})"> PUG
-          </label>
-          <select class="presetSelect" onchange="presetSelected(${i})"></select>
-          <span class="updateToggle">update</span>
-          <input placeholder="Preset name" class="presetName">
-          <button onclick="savePreset(${i});">Save</button>
+        <div class="header-controls">
+          <label style="margin-right:6px"><input type="checkbox" class="pug" onchange="onPugToggle(${i})" onclick="event.stopPropagation()"> PUG</label>
+          <select class="presetSelect" onchange="presetSelected(${i})" onclick="event.stopPropagation()"></select>
+          <span class="updateToggle" onclick="toggleState(${i}); event.stopPropagation()">update</span>
+          <input placeholder="Preset name" class="presetName" onclick="event.stopPropagation()">
+          <button onclick="savePreset(${i}); event.stopPropagation();">Save</button>
         </div>
       </div>
       <div class="slotBody">
@@ -265,7 +262,7 @@ function createSlots(){
 
       row.innerHTML=`
         <label style="color:${classColors[cls]}">
-          <input type="checkbox" class="classTick">
+          <input type="checkbox" class="classTick" onclick="event.stopPropagation()">
           ${cls}
         </label>
         <span class="specs">${specHTML}</span>
@@ -281,32 +278,25 @@ function createSlots(){
       row.querySelectorAll(".specTick").forEach(s=>s.checked = false)
 
       classBox.addEventListener("change",()=>{
-        // find slot index for title update
         const slotElem = row.closest('.slot')
         const idx = Array.prototype.indexOf.call(document.querySelectorAll('.slot'), slotElem)
 
         if(classBox.checked){
-          // show specs container and make all spec labels visible (do not change checked states)
+          // selected classes always show all specs (labels visible) but do not change spec checked states
           specSpan.style.display = "inline"
-          row.querySelectorAll(".specLabel").forEach(lbl=>{
-            lbl.style.display = ""
-          })
-          // ensure row visible whether expanded or collapsed
+          row.querySelectorAll(".specLabel").forEach(lbl=> lbl.style.display = "")
           row.style.display = "block"
         } else {
-          // hide specs container
-          specSpan.style.display = "none"
-          // if slot is collapsed hide the row entirely; if expanded keep row visible but with specs hidden
-          const bodyEl = slotElem.querySelector('.slotBody')
-          const isCollapsed = (bodyEl.style.display === "none" || bodyEl.style.display === "")
-          if(isCollapsed){
+          // when unselected: hide specs; if state is 'selected-only' hide the row entirely, otherwise keep the row visible without specs
+          const state = slotElem.dataset.state || 'selected-only'
+          if(state === 'selected-only'){
             row.style.display = "none"
           } else {
             row.style.display = "block"
+            specSpan.style.display = "none"
           }
         }
 
-        // update header/title
         if(typeof idx === "number" && idx>=0) updateSlotTitle(idx)
       })
     })
@@ -328,8 +318,9 @@ function createSlots(){
       classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
     }
 
-    // keep collapsed by default
-    slot.querySelector(".slotBody").style.display = "none"
+    // set initial state: selected-only (State 1)
+    slot.dataset.state = 'selected-only'
+    applyState(i)
 
     updateSlotTitle(i)
   }
@@ -368,60 +359,59 @@ function onPugToggle(i){
   updateSlotTitle(i)
 }
 
-function toggleSlot(i){
+// toggle between two states:
+// 'selected-only' (State 1): show only selected classes and all their specs
+// 'all' (State 2): show all classes; selected classes show their specs
+function toggleState(i){
   const slot=document.querySelectorAll(".slot")[i]
-  const body=slot.querySelector(".slotBody")
-  const isCollapsed = body.style.display === "none" || body.style.display === ""
+  const current = slot.dataset.state || 'selected-only'
+  const next = current === 'selected-only' ? 'all' : 'selected-only'
+  slot.dataset.state = next
+  applyState(i)
+  updateSlotTitle(i)
+}
 
-  if(isCollapsed){
-    // expand: show body and reveal all classes
-    body.style.display = "block"
+function applyState(i){
+  const slot = document.querySelectorAll(".slot")[i]
+  if(!slot) return
+  const state = slot.dataset.state || 'selected-only'
+  const classRows = slot.querySelectorAll(".classRow")
+  classRows.forEach(row=>{
+    const classTick = row.querySelector(".classTick")
+    const specSpan = row.querySelector(".specs")
 
-    slot.querySelectorAll(".classRow").forEach(row=>{
+    if(state === 'all'){
+      // show every class row
       row.style.display = "block"
-      const classTick = row.querySelector(".classTick")
-      const specSpan = row.querySelector(".specs")
-      if(!specSpan) return
-
       if(classTick && classTick.checked){
-        // for selected classes: show all specs (labels) and keep their checkbox states
-        specSpan.style.display = "inline"
-        row.querySelectorAll(".specLabel").forEach(lbl=>{
-          lbl.style.display = ""
-        })
+        // selected classes: show all spec labels
+        if(specSpan) specSpan.style.display = "inline"
+        row.querySelectorAll(".specLabel").forEach(lbl=> lbl.style.display = "")
       } else {
-        // for unselected classes: hide specs container but show class row
-        specSpan.style.display = "none"
-        row.querySelectorAll(".specLabel").forEach(lbl=>{
-          // keep spec label visibility default (hidden) until class is selected
-          // do not force-hide to avoid overwriting user intent; ensure labels reappear when class selected
-          // leave lbl.style.display as-is
-        })
+        // unselected classes: hide specs
+        if(specSpan) specSpan.style.display = "none"
+        row.querySelectorAll(".specLabel").forEach(lbl=>{ /* keep label display as-is but hide container */ })
       }
-    })
-  } else {
-    // collapse: hide unselected classes; selected classes remain visible with all their specs visible
-    body.style.display = "none"
-
-    slot.querySelectorAll(".classRow").forEach(row=>{
-      const classTick = row.querySelector(".classTick")
-      const specSpan = row.querySelector(".specs")
+    } else {
+      // selected-only: only show rows where class is checked; for those show all specs
       if(classTick && classTick.checked){
         row.style.display = "block"
-        if(specSpan){
-          specSpan.style.display = "inline"
-          row.querySelectorAll(".specLabel").forEach(lbl=>{
-            lbl.style.display = ""
-          })
-        }
+        if(specSpan) specSpan.style.display = "inline"
+        row.querySelectorAll(".specLabel").forEach(lbl=> lbl.style.display = "")
       } else {
         row.style.display = "none"
         if(specSpan) specSpan.style.display = "none"
       }
-    })
-  }
+    }
+  })
 
-  updateSlotTitle(i)
+  // ensure classList visible unless PUG
+  const classList = slot.querySelector(".classList")
+  if(slot.querySelector(".pug") && slot.querySelector(".pug").checked){
+    classList.style.display = "none"
+  } else {
+    classList.style.display = "block"
+  }
 }
 
 function updateSlotTitle(i){
@@ -445,7 +435,7 @@ function updateSlotTitle(i){
   }
 }
 
-// helper to get the canonical slot name (without appended checked classes)
+// helper to get the canonical slot name (without appended class list)
 function getSlotName(slot, i){
   if(slot.querySelector(".pug") && slot.querySelector(".pug").checked) return "PUG"
   const nameInputVal = slot.querySelector(".presetName") && slot.querySelector(".presetName").value.trim()
@@ -466,7 +456,6 @@ function savePreset(i){
     const specInputs = [...row.querySelectorAll(".specTick")]
     preset.push({
       classEnabled: classTick.checked,
-      // we don't rely on classVisible; when loading we will show only checked specs
       specs: specInputs.map(s=>({checked:s.checked}))
     })
   })
@@ -494,33 +483,28 @@ function loadPreset(i){
 
     if(!entry){
       classTick.checked = false
-      // when no entry default to hidden row and specs hidden
       row.style.display = "none"
       specInputs.forEach(s=>{
         s.checked=false
-        s.parentElement.style.display = "none"
+        s.parentElement.style.display = ""
       })
       if(specSpan) specSpan.style.display = "none"
       return
     }
 
-    // Set class checkbox state
     classTick.checked = !!entry.classEnabled
 
-    // Restore checked states for specs
+    // Restore checked states for specs but always show spec labels for selected classes
     specInputs.forEach((s, si)=>{
       const specEntry = entry.specs && entry.specs[si]
       s.checked = !!(specEntry && specEntry.checked)
-      // DO NOT hide spec labels based on saved checked: show all specs for selected classes
       s.parentElement.style.display = ""
     })
 
     if(classTick.checked){
-      // selected classes should be visible and all specs shown
       row.style.display = "block"
       if(specSpan) specSpan.style.display = "inline"
     } else {
-      // unselected classes hidden by default after load
       row.style.display = "none"
       if(specSpan) specSpan.style.display = "none"
     }
@@ -539,8 +523,9 @@ function loadPreset(i){
   // set name input to selected preset name
   slot.querySelector(".presetName").value = key.replace("wowSlotPreset_","")
 
-  // keep collapsed
-  slot.querySelector(".slotBody").style.display = "none"
+  // keep state as selected-only after load
+  slot.dataset.state = 'selected-only'
+  applyState(i)
   updateSlotTitle(i)
 }
 
@@ -585,7 +570,7 @@ function generate(){
     } else {
       let specs=[]
       slot.querySelectorAll(".classRow").forEach(row=>{
-        // when building choices, consider rows that are visible or hidden — user-selected hiding means ignore
+        // only consider rows currently visible (selected-only hides unselected classes)
         if(row.style.display==="none") return
         const classBox = row.querySelector(".classTick")
         if(!classBox || !classBox.checked) return
