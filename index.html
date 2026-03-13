@@ -396,7 +396,23 @@ function createSlots(){
   }
 }
 
-createSlots()
+// create slots after the document is ready and after the rest of the script has been parsed.
+wrap in try/catch so an initialization error doesn't stop the rest of the script.
+function initSlotsSafe(){
+  try{
+    createSlots()
+  }catch(e){
+    console.error("createSlots failed:", e)
+    const container = document.getElementById('slots')
+    if(container) container.textContent = "Failed to initialize slots: " + (e && e.message ? e.message : e)
+  }
+}
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initSlotsSafe)
+} else {
+  // already ready
+  setTimeout(initSlotsSafe, 0)
+}
 
 function presetSelected(i){
   const slot=document.querySelectorAll(".slot")[i]
