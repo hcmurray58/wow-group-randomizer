@@ -111,7 +111,7 @@ button{
 <body>
 
 <!-- replaced text title with image -->
-<h1><img src="WoW-Group-Randomizer.png" alt="WoW Group Randomizer" style="height:40px"></h1>
+<h1><img src="WoW-Group-Randomizer.png" alt="WoW Group Randomizer" style="height:100px"></h1>
 
 <div id="topControls">
   <label><input type="checkbox" id="tankNonPugRequired"> Tank must be non-PUG</label><br>
@@ -281,13 +281,33 @@ function createSlots(){
       row.querySelectorAll(".specTick").forEach(s=>s.checked = false)
 
       classBox.addEventListener("change",()=>{
+        // find slot index for title update
+        const slotElem = row.closest('.slot')
+        const idx = Array.prototype.indexOf.call(document.querySelectorAll('.slot'), slotElem)
+
         if(classBox.checked){
-          // show specs but leave them unticked so user can choose individually
-          specSpan.style.display="inline"
-          specSpan.querySelectorAll("input").forEach(s=>s.checked=false)
-        }else{
-          specSpan.style.display="none"
+          // show specs container and make all spec labels visible (do not change checked states)
+          specSpan.style.display = "inline"
+          row.querySelectorAll(".specLabel").forEach(lbl=>{
+            lbl.style.display = ""
+          })
+          // ensure row visible whether expanded or collapsed
+          row.style.display = "block"
+        } else {
+          // hide specs container
+          specSpan.style.display = "none"
+          // if slot is collapsed hide the row entirely; if expanded keep row visible but with specs hidden
+          const bodyEl = slotElem.querySelector('.slotBody')
+          const isCollapsed = (bodyEl.style.display === "none" || bodyEl.style.display === "")
+          if(isCollapsed){
+            row.style.display = "none"
+          } else {
+            row.style.display = "block"
+          }
         }
+
+        // update header/title
+        if(typeof idx === "number" && idx>=0) updateSlotTitle(idx)
       })
     })
 
@@ -351,47 +371,42 @@ function onPugToggle(i){
 function toggleSlot(i){
   const slot=document.querySelectorAll(".slot")[i]
   const body=slot.querySelector(".slotBody")
-  // treat empty string as collapsed (initial state)
   const isCollapsed = body.style.display === "none" || body.style.display === ""
 
   if(isCollapsed){
-    // expand: show body and reveal all class rows
+    // expand: show body and reveal all classes
     body.style.display = "block"
 
     slot.querySelectorAll(".classRow").forEach(row=>{
-      // show every class row
       row.style.display = "block"
-
-      const specSpan = row.querySelector(".specs")
       const classTick = row.querySelector(".classTick")
+      const specSpan = row.querySelector(".specs")
       if(!specSpan) return
 
-      // when expanded:
-      // - for classes that are checked: show the specs container and only the spec labels for checked specs
-      // - for classes that are unchecked: hide the specs container
       if(classTick && classTick.checked){
+        // for selected classes: show all specs (labels) and keep their checkbox states
         specSpan.style.display = "inline"
         row.querySelectorAll(".specLabel").forEach(lbl=>{
-          const cb = lbl.querySelector("input")
-          // show only spec labels that are checked (so user sees which specs are selected)
-          lbl.style.display = (cb && cb.checked) ? "" : "none"
+          lbl.style.display = ""
         })
       } else {
+        // for unselected classes: hide specs container but show class row
         specSpan.style.display = "none"
-        // ensure spec labels are visible when later expanded/checked again
-        row.querySelectorAll(".specLabel").forEach(lbl=>{ if(lbl.style.display === "none") lbl.style.display = "" })
+        row.querySelectorAll(".specLabel").forEach(lbl=>{
+          // keep spec label visibility default (hidden) until class is selected
+          // do not force-hide to avoid overwriting user intent; ensure labels reappear when class selected
+          // leave lbl.style.display as-is
+        })
       }
     })
   } else {
-    // collapse: hide unselected classes; for selected classes show all their specs
+    // collapse: hide unselected classes; selected classes remain visible with all their specs visible
     body.style.display = "none"
 
     slot.querySelectorAll(".classRow").forEach(row=>{
       const classTick = row.querySelector(".classTick")
       const specSpan = row.querySelector(".specs")
-
       if(classTick && classTick.checked){
-        // keep selected classes visible and show all their specs
         row.style.display = "block"
         if(specSpan){
           specSpan.style.display = "inline"
@@ -400,7 +415,6 @@ function toggleSlot(i){
           })
         }
       } else {
-        // hide unselected classes entirely when collapsed
         row.style.display = "none"
         if(specSpan) specSpan.style.display = "none"
       }
@@ -474,35 +488,42 @@ function loadPreset(i){
   const classRows = slot.querySelectorAll(".classRow")
   classRows.forEach((row, index)=>{
     const entry = preset[index]
-    // default: hide row and uncheck everything
     const classTick = row.querySelector(".classTick")
     const specInputs = [...row.querySelectorAll(".specTick")]
+    const specSpan = row.querySelector(".specs")
 
     if(!entry){
       classTick.checked = false
+      // when no entry default to hidden row and specs hidden
       row.style.display = "none"
       specInputs.forEach(s=>{
         s.checked=false
         s.parentElement.style.display = "none"
       })
+      if(specSpan) specSpan.style.display = "none"
       return
     }
 
-    // Set class checkbox state based on saved classEnabled
+    // Set class checkbox state
     classTick.checked = !!entry.classEnabled
 
-    // For each spec: set checked based on saved checked, show only if checked
+    // Restore checked states for specs
     specInputs.forEach((s, si)=>{
       const specEntry = entry.specs && entry.specs[si]
       s.checked = !!(specEntry && specEntry.checked)
-      s.parentElement.style.display = s.checked ? "" : "none"
+      // DO NOT hide spec labels based on saved checked: show all specs for selected classes
+      s.parentElement.style.display = ""
     })
 
-    // Show the row only if classTick checked and at least one spec visible
-    const anySpecVisible = specInputs.some(s=>s.parentElement.style.display !== "none")
-    row.style.display = (classTick.checked && anySpecVisible) ? "block" : "none"
-    // set specs container visibility accordingly
-    row.querySelector(".specs").style.display = (classTick.checked && anySpecVisible) ? "inline" : "none"
+    if(classTick.checked){
+      // selected classes should be visible and all specs shown
+      row.style.display = "block"
+      if(specSpan) specSpan.style.display = "inline"
+    } else {
+      // unselected classes hidden by default after load
+      row.style.display = "none"
+      if(specSpan) specSpan.style.display = "none"
+    }
   })
 
   // if pug is checked, hide entire class list
