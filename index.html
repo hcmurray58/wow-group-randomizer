@@ -112,6 +112,9 @@ button{
 <!-- replaced text title with image -->
 <h1><img src="WoW-Group-Randomizer.png" alt="WoW Group Randomizer" style="height:100px"></h1>
 
+<div id="slots"></div>
+
+<!-- moved the five top checkboxes here (below slots, above generate button) -->
 <div id="topControls">
   <label><input type="checkbox" id="tankNonPugRequired"> Tank must be non-PUG</label><br>
   <label><input type="checkbox" id="healerNonPugRequired"> Healer must be non-PUG</label><br>
@@ -120,8 +123,6 @@ button{
   <label><input type="checkbox" id="brezRequired"> Require Battle Rez</label><br>
   <label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label>
 </div>
-
-<div id="slots"></div>
 
 <button onclick="generate()">Generate Group</button>
 
@@ -151,8 +152,8 @@ const classes={
     {spec:"Fury",role:"dps"}
   ],
   Paladin:[
-    {spec:"Protection",role:"tank"},
-    {spec:"Holy",role:"healer"},
+    {spec:"Protection",role:"tank",brez:true},
+    {spec:"Holy",role:"healer",brez:true},
     {spec:"Retribution",role:"dps",brez:true}
   ],
   Druid:[
@@ -192,7 +193,7 @@ const classes={
     {spec:"Unholy",role:"dps",brez:true}
   ],
   Evoker:[
-    {spec:"Preservation",role:"healer"},
+    {spec:"Preservation",role:"healer",lust:true},
     {spec:"Devastation",role:"dps",lust:true},
     {spec:"Augmentation",role:"dps",lust:true}
   ],
@@ -277,17 +278,16 @@ function createSlots(){
       specSpan.style.display = "none"
       row.querySelectorAll(".specTick").forEach(s=>s.checked = false)
 
+      // when class tick changes: selected classes always show all specs (labels visible)
       classBox.addEventListener("change",()=>{
         const slotElem = row.closest('.slot')
         const idx = Array.prototype.indexOf.call(document.querySelectorAll('.slot'), slotElem)
 
         if(classBox.checked){
-          // selected classes always show all specs (labels visible) but do not change spec checked states
           specSpan.style.display = "inline"
           row.querySelectorAll(".specLabel").forEach(lbl=> lbl.style.display = "")
           row.style.display = "block"
         } else {
-          // when unselected: hide specs; if state is 'selected-only' hide the row entirely, otherwise keep the row visible without specs
           const state = slotElem.dataset.state || 'selected-only'
           if(state === 'selected-only'){
             row.style.display = "none"
@@ -298,6 +298,21 @@ function createSlots(){
         }
 
         if(typeof idx === "number" && idx>=0) updateSlotTitle(idx)
+      })
+
+      // spec change: if any spec is checked then clear PUG for that slot and enable UI; always ensure state applied
+      row.querySelectorAll('.specTick').forEach(s=>{
+        s.addEventListener('change', ()=>{
+          const slotElem = row.closest('.slot')
+          const idx = Array.prototype.indexOf.call(document.querySelectorAll('.slot'), slotElem)
+          const pugBox = slotElem.querySelector('.pug')
+          if(s.checked && pugBox && pugBox.checked){
+            pugBox.checked = false
+            onPugToggle(idx)
+          }
+          // when a spec changes ensure state rules applied so specs visibility updates
+          applyState(idx)
+        })
       })
     })
 
@@ -311,11 +326,8 @@ function createSlots(){
     // initial pug state handling
     const pugBox = slot.querySelector(".pug")
     if(pugBox.checked){
-      classList.style.display = "none"
-      classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
-    } else {
-      classList.style.display = "block"
-      classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
+      // honor state: if selected-only, hide classList, if 'all' keep visible — default state set below
+      // noop here
     }
 
     // set initial state: selected-only (State 1)
@@ -356,9 +368,17 @@ function onPugToggle(i){
   const slot=document.querySelectorAll(".slot")[i]
   const pug=slot.querySelector(".pug").checked
   const classList=slot.querySelector(".classList")
+  const state = slot.dataset.state || 'selected-only'
+
   if(pug){
-    classList.style.display="none"
-    classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
+    // if in selected-only state then hide the class list; in 'all' state keep class list visible
+    if(state === 'selected-only'){
+      classList.style.display="none"
+      classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
+    } else {
+      classList.style.display="block"
+      classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
+    }
   } else {
     classList.style.display="block"
     classList.querySelectorAll("input").forEach(inp=>inp.disabled=false)
@@ -397,7 +417,6 @@ function applyState(i){
       } else {
         // unselected classes: hide specs
         if(specSpan) specSpan.style.display = "none"
-        row.querySelectorAll(".specLabel").forEach(lbl=>{ /* keep label display as-is but hide container */ })
       }
     } else {
       // selected-only: only show rows where class is checked; for those show all specs
@@ -412,12 +431,18 @@ function applyState(i){
     }
   })
 
-  // ensure classList visible unless PUG
+  // classList visibility depends on state and pug
   const classList = slot.querySelector(".classList")
-  if(slot.querySelector(".pug") && slot.querySelector(".pug").checked){
-    classList.style.display = "none"
-  } else {
+  if(state === 'all'){
     classList.style.display = "block"
+    classList.querySelectorAll("input").forEach(inp=>inp.disabled = false)
+  } else {
+    // selected-only: hide classList entirely if PUG checked, otherwise show it (but rows filtered above)
+    if(slot.querySelector(".pug") && slot.querySelector(".pug").checked){
+      classList.style.display = "none"
+    } else {
+      classList.style.display = "block"
+    }
   }
 }
 
@@ -482,6 +507,7 @@ function loadPreset(i){
   const preset=JSON.parse(raw)
 
   const classRows = slot.querySelectorAll(".classRow")
+  let anySpecChecked = false
   classRows.forEach((row, index)=>{
     const entry = preset[index]
     const classTick = row.querySelector(".classTick")
@@ -505,6 +531,7 @@ function loadPreset(i){
     specInputs.forEach((s, si)=>{
       const specEntry = entry.specs && entry.specs[si]
       s.checked = !!(specEntry && specEntry.checked)
+      if(s.checked) anySpecChecked = true
       s.parentElement.style.display = ""
     })
 
@@ -517,9 +544,16 @@ function loadPreset(i){
     }
   })
 
-  // if pug is checked, hide entire class list
+  // if any spec restored as checked, clear PUG and ensure UI enabled
+  const pugBox = slot.querySelector(".pug")
+  if(anySpecChecked && pugBox && pugBox.checked){
+    pugBox.checked = false
+    onPugToggle(i)
+  }
+
+  // if pug is checked, hide entire class list only if in selected-only state
   const classList = slot.querySelector(".classList")
-  if(slot.querySelector(".pug").checked){
+  if(slot.querySelector(".pug").checked && slot.dataset.state === 'selected-only'){
     classList.style.display="none"
     classList.querySelectorAll("input").forEach(inp=>inp.disabled=true)
   } else {
