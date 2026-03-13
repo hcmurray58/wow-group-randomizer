@@ -562,31 +562,43 @@ function generate(){
     const roleFieldWidth = 10
     const classFieldWidth = 18
 
+    function formatRole(role){
+      if(!role) return ""
+      if(role==="dps") return "DPS"
+      return role.charAt(0).toUpperCase()+role.slice(1)
+    }
+
     const lines = group.map((g,i)=>{
       const slotTitleEl = slots[i].querySelector('.slotTitle')
       let slotTitle = slotTitleEl ? slotTitleEl.textContent : `Slot ${i+1}`
-      // ensure single-line title
       slotTitle = slotTitle.replace(/\s+/g, ' ')
 
+      const roleText = formatRole(g.role)
+      const classText = g.class || ""
+      const specText = g.spec || ""
+
+      // compute padding counts based on plain text lengths
+      const namePart = slotTitle + ":"
+      const namePad = Math.max(0, nameFieldWidth - namePart.length)
+      const rolePad = Math.max(0, roleFieldWidth - roleText.length)
+      const classPad = Math.max(0, classFieldWidth - classText.length)
+
+      // build HTML line: use spans for colored role/class, keep padding as literal spaces (pre preserves)
+      const nameSection = namePart + " ".repeat(namePad)
+      const roleSection = `<span class="${g.role||''}">${roleText}</span>` + " ".repeat(rolePad)
+
       if(g.pug){
-        // show only role for pug
-        return padRight(slotTitle + ":", nameFieldWidth) +
-               padRight((g.role||"").toUpperCase(), roleFieldWidth)
+        return nameSection + roleSection
       }
 
-      const className = g.class || ""
-      const specName = g.spec || ""
-      return padRight(slotTitle + ":", nameFieldWidth) +
-             padRight((g.role||"").toUpperCase(), roleFieldWidth) +
-             padRight(className, classFieldWidth) +
-             specName
+      const classSection = `<span style="color:${classColors[classText] || '#fff'}">${classText}</span>` + " ".repeat(classPad)
+      return nameSection + roleSection + classSection + specText
     })
 
     const resultDiv = document.getElementById("result")
-    // use a PRE element so spaces / alignment are preserved
     const pre = document.createElement('pre')
-    pre.textContent = lines.join("\n")
-    // clear old content and append pre
+    // use innerHTML so our spans are rendered; pre preserves spacing/newlines
+    pre.innerHTML = lines.join("\n")
     resultDiv.innerHTML = ""
     resultDiv.appendChild(pre)
 
