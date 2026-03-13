@@ -940,9 +940,35 @@ function generate(){
     const rowTop = panelY + 10
     linesData.forEach((ld, idx) => {
       const y = rowTop + idx * lineHeight
-      // name
-      ctx.fillStyle = "#eee"
-      ctx.fillText(ld.slotName + ":", xName, y)
+
+      // name with "wc-input" pill background to match UI aesthetics
+      const nameText = ld.slotName + ":"
+      ctx.font = font
+      const nameW = ctx.measureText(nameText).width
+      const pillPadX = 8
+      const pillPadY = 4
+      const pillX = xName - pillPadX
+      const pillY = y - 2
+      const pillW = nameW + pillPadX*2
+      const pillH = lineHeight
+
+      ctx.save()
+      // pill gradient similar to .wc-input
+      const pillGrad = ctx.createLinearGradient(pillX, pillY, pillX, pillY + pillH)
+      pillGrad.addColorStop(0, "#fff7df")
+      pillGrad.addColorStop(1, "#e0c07a")
+      roundRect(ctx, pillX, pillY, pillW, pillH, 6)
+      ctx.fillStyle = pillGrad
+      ctx.fill()
+      // pill border
+      ctx.lineWidth = 1
+      ctx.strokeStyle = "#6b4a12"
+      ctx.stroke()
+      ctx.restore()
+
+      // draw name text in dark color to match input text color
+      ctx.fillStyle = "#1b1300"
+      ctx.fillText(nameText, xName, y)
 
       // role (tank/ healer / DPS - DPS red)
       const roleColor = ld.role === 'tank' ? '#4aa3ff' : (ld.role === 'healer' ? '#3ddc84' : '#ff6b6b')
