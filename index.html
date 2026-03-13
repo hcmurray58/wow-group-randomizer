@@ -835,36 +835,77 @@ function generate(){
     })
 
     // providers info at bottom
-    const lustProviders = linesData.filter(ld=>{
+    const lustProvidersData = linesData.filter(ld=>{
       if(ld.isPug) return false
       const cls = classes[ld.className] || []
       const specEntry = cls.find(s=>s.spec===ld.specName) || {}
       return !!specEntry.lust
-    }).map(ld=>ld.slotName)
-    const brezProviders = linesData.filter(ld=>{
+    }).map(ld=>({ name: ld.slotName, color: classColors[ld.className] || '#eee' }))
+
+    const brezProvidersData = linesData.filter(ld=>{
       if(ld.isPug) return false
       const cls = classes[ld.className] || []
       const specEntry = cls.find(s=>s.spec===ld.specName) || {}
       return !!specEntry.brez
-    }).map(ld=>ld.slotName)
+    }).map(ld=>({ name: ld.slotName, color: classColors[ld.className] || '#eee' }))
 
     let footerY = 10 + linesData.length * lineHeight + 6
+    // Lust providers line: label then coloured names
     ctx.fillStyle = "#eee"
-    ctx.fillText("Lust providers: " + (lustProviders.length ? lustProviders.join(", ") : "(none)"), 10, footerY)
+    const lustLabel = "Lust providers: "
+    ctx.fillText(lustLabel, leftPadding, footerY)
+    let x = leftPadding + ctx.measureText(lustLabel).width
+    if(lustProvidersData.length === 0){
+      ctx.fillStyle = "#eee"
+      ctx.fillText("(none)", x, footerY)
+    } else {
+      lustProvidersData.forEach((p, idx)=>{
+        ctx.fillStyle = p.color
+        ctx.fillText(p.name, x, footerY)
+        x += ctx.measureText(p.name).width
+        if(idx < lustProvidersData.length - 1){
+          ctx.fillStyle = "#eee"
+          const sep = ", "
+          ctx.fillText(sep, x, footerY)
+          x += ctx.measureText(sep).width
+        }
+      })
+    }
     footerY += lineHeight
-    ctx.fillText("Battle Rez providers: " + (brezProviders.length ? brezProviders.join(", ") : "(none)"), 10, footerY)
+
+    // Battle Rez providers line
+    ctx.fillStyle = "#eee"
+    const brezLabel = "Battle Rez providers: "
+    ctx.fillText(brezLabel, leftPadding, footerY)
+    x = leftPadding + ctx.measureText(brezLabel).width
+    if(brezProvidersData.length === 0){
+      ctx.fillStyle = "#eee"
+      ctx.fillText("(none)", x, footerY)
+    } else {
+      brezProvidersData.forEach((p, idx)=>{
+        ctx.fillStyle = p.color
+        ctx.fillText(p.name, x, footerY)
+        x += ctx.measureText(p.name).width
+        if(idx < brezProvidersData.length - 1){
+          ctx.fillStyle = "#eee"
+          const sep = ", "
+          ctx.fillText(sep, x, footerY)
+          x += ctx.measureText(sep).width
+        }
+      })
+    }
     footerY += lineHeight
 
     // (requireLust / requireBrez already read above)
     if(requireLust || requireBrez){
       if(requireLust){
-        ctx.fillStyle = lustProviders.length ? "#3ddc84" : "#ff6b6b"
-        ctx.fillText("Lust: " + (lustProviders.length ? "OK" : "MISSING"), 10, footerY)
+        ctx.fillStyle = (lustProvidersData.length ? "#3ddc84" : "#ff6b6b")
+        ctx.fillText("Lust: " + (lustProvidersData.length ? "OK" : "MISSING"), leftPadding, footerY)
         footerY += lineHeight
       }
       if(requireBrez){
-        ctx.fillStyle = brezProviders.length ? "#3ddc84" : "#ff6b6b"
-        ctx.fillText("Battle Rez: " + (brezProviders.length ? "OK" : "MISSING"), 10, footerY)
+        ctx.fillStyle = (brezProvidersData.length ? "#3ddc84" : "#ff6b6b")
+        ctx.fillText("Battle Rez: " + (brezProvidersData.length ? "OK" : "MISSING"), leftPadding, footerY)
         footerY += lineHeight
       }
     }
