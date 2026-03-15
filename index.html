@@ -1007,9 +1007,15 @@ function generate(){
     ctx.fillStyle = g
     ctx.fill()
 
-    // outer border
+    // button-style border
+    ctx.lineWidth = 2
+    ctx.strokeStyle = "#7a5314"
+    ctx.stroke()
+
+    // subtle outer shadow edge like WC buttons
     ctx.lineWidth = 1
-    ctx.strokeStyle = "rgba(255,255,255,0.06)"
+    ctx.strokeStyle = "#3f2a08"
+    roundRect(ctx, panelX-1, panelY-1, panelW+2, panelH+2, 8)
     ctx.stroke()
 
     // compute column X positions (so separators can use them)
