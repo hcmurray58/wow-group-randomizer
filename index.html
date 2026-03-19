@@ -1258,7 +1258,7 @@ function generate(){
       const key = getSpecKey(g)
 
       // Reset selected spec
-      weights[key] = 0.001
+      weights[key] = 0.00001
     })
 
     // Now increase all other specs by 20%
@@ -1294,7 +1294,7 @@ function generate(){
         )
 
         if(!wasSelected){
-          weights[key] = (weights[key] || 1) * 0.3 + 0.2
+          weights[key] = (weights[key] || 1) * 0.3 + 200
         }
       })
     })
