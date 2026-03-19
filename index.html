@@ -717,7 +717,7 @@ function weightedRandom(options, weights){
   let total = 0
   const weighted = options.map(o=>{
     const key = getSpecKey(o)
-    const w = weights[key] || 1
+    const w = weights[key] || 0.0001
     total += w
     return {option:o, weight:w}
   })
@@ -1258,7 +1258,7 @@ function generate(){
       const key = getSpecKey(g)
 
       // Reset selected spec
-      weights[key] = 0.00001
+      weights[key] = 0.0001
     })
 
     // Now increase all other specs by 20%
@@ -1294,7 +1294,7 @@ function generate(){
         )
 
         if(!wasSelected){
-          weights[key] = (weights[key] || 1) * 0.3 + 20000
+          weights[key] = (weights[key] || 0.0001) * 0.3 + 0.2
         }
       })
     })
