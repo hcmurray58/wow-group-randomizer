@@ -713,6 +713,35 @@ function getSpecKey(spec){
   return spec.class + "|" + spec.spec
 }
 
+function getRoleWeightsKey(slotName){
+  return "wowRoleWeights_" + slotName
+}
+
+function loadRoleWeights(slotName){
+  const raw = localStorage.getItem(getRoleWeightsKey(slotName))
+  return raw ? JSON.parse(raw) : { tank:1, healer:1, dps:1 }
+}
+
+function saveRoleWeights(slotName, weights){
+  localStorage.setItem(getRoleWeightsKey(slotName), JSON.stringify(weights))
+}
+
+function weightedRandomRole(roleWeights){
+  const entries = Object.entries(roleWeights)
+  let total = 0
+
+  entries.forEach(([role, w]) => total += w)
+
+  let r = Math.random() * total
+
+  for(const [role, w] of entries){
+    if(r < w) return role
+    r -= w
+  }
+
+  return entries[0][0]
+}
+
 function weightedRandom(options, weights){
   let total = 0
   const weighted = options.map(o=>{
@@ -897,9 +926,36 @@ function generate(){
 
   for(let attempt=0;attempt<10000;attempt++){
     let group=[]
-    let roles=["tank","healer","dps","dps","dps"]
-    for(let i=roles.length-1;i>0;i--){
-      const j=Math.floor(Math.random()*(i+1)); [roles[i],roles[j]]=[roles[j],roles[i]]
+    let rolesPool = ["tank","healer","dps","dps","dps"]
+    let roles = []
+
+    for(let i=0;i<5;i++){
+      const slotName = getSlotName(slots[i], i)
+      const roleWeights = loadRoleWeights(slotName)
+
+      // only consider roles still available
+      const available = rolesPool.map(r => ({
+        role: r,
+        weight: roleWeights[r] || 1
+      }))
+
+      let total = available.reduce((sum,a)=>sum+a.weight,0)
+      let r = Math.random() * total
+
+      let chosenRole = available[0].role
+      for(const a of available){
+        if(r < a.weight){
+          chosenRole = a.role
+          break
+        }
+        r -= a.weight
+      }
+
+      roles.push(chosenRole)
+
+      // remove ONE instance from pool
+      const idx = rolesPool.indexOf(chosenRole)
+      rolesPool.splice(idx,1)
     }
 
     for(let i=0;i<5;i++){
@@ -1297,6 +1353,41 @@ function generate(){
           weights[key] = (weights[key] || 0.0001) * 0.5 + 0.2
         }
       })
+    })
+
+    // ROLE WEIGHT UPDATES
+    const updatedRoleWeightsBySlot = {}
+
+    group.forEach(g=>{
+      const slotName = getSlotName(slots[g.slotIndex], g.slotIndex)
+
+      if(!updatedRoleWeightsBySlot[slotName]){
+        updatedRoleWeightsBySlot[slotName] = loadRoleWeights(slotName)
+      }
+
+      const weights = updatedRoleWeightsBySlot[slotName]
+
+      // reset selected role
+      weights[g.role] = 0.2
+    })
+
+    // increase other roles
+    Object.entries(updatedRoleWeightsBySlot).forEach(([slotName, weights])=>{
+      ["tank","healer","dps"].forEach(role=>{
+        const wasSelected = group.some(g =>
+          getSlotName(slots[g.slotIndex], g.slotIndex) === slotName &&
+          g.role === role
+        )
+
+        if(!wasSelected){
+          weights[role] = (weights[role] || 1) * 1.2
+        }
+      })
+    })
+
+    // save
+    Object.entries(updatedRoleWeightsBySlot).forEach(([slotName, weights])=>{
+      saveRoleWeights(slotName, weights)
     })
 
     // Save all weights
