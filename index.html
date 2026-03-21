@@ -1350,7 +1350,7 @@ function generate(){
         )
 
         if(!wasSelected){
-          weights[key] = (weights[key] || 0.0001) * 0.5 + 0.2
+          weights[key] = (weights[key] || 0.0001) * 1.5 + 0.2
         }
       })
     })
@@ -1368,7 +1368,7 @@ function generate(){
       const weights = updatedRoleWeightsBySlot[slotName]
 
       // reset selected role
-      weights[g.role] = 0.2
+      weights[g.role] = 0.0001
     })
 
     // increase other roles
@@ -1380,7 +1380,7 @@ function generate(){
         )
 
         if(!wasSelected){
-          weights[role] = (weights[role] || 1) * 1.2
+          weights[role] = (weights[role] || 0.0001) * 1.5 + 0.2
         }
       })
     })
