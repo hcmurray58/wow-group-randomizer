@@ -1127,10 +1127,18 @@ function generate(){
     // Weighted backtracking role assignment — always finds a valid assignment if one exists.
     // For each slot try roles in a weighted-random order; backtrack if a branch dead-ends.
     const rolesPool = ["tank","healer","dps","dps","dps"]
-    const roles = []
+    const rolesBySlot = Array(5).fill(null)
+    const slotOrder = [0,1,2,3,4]
+    for(let k = slotOrder.length - 1; k > 0; k--){
+      const j = Math.floor(Math.random() * (k + 1))
+      const temp = slotOrder[k]
+      slotOrder[k] = slotOrder[j]
+      slotOrder[j] = temp
+    }
 
-    function assignRoles(slotIdx){
-      if(slotIdx === 5) return rolesPool.length === 0
+    function assignRoles(orderIdx){
+      if(orderIdx === 5) return rolesPool.length === 0
+      const slotIdx = slotOrder[orderIdx]
       const available = possibleRoles[slotIdx].filter(r => rolesPool.includes(r))
       if(available.length === 0) return false
 
@@ -1154,9 +1162,9 @@ function generate(){
       for(const role of order){
         const pi = rolesPool.indexOf(role)
         rolesPool.splice(pi, 1)
-        roles.push(role)
-        if(assignRoles(slotIdx + 1)) return true
-        roles.pop()
+        rolesBySlot[slotIdx] = role
+        if(assignRoles(orderIdx + 1)) return true
+        rolesBySlot[slotIdx] = null
         rolesPool.splice(pi, 0, role)
       }
       return false
@@ -1165,10 +1173,12 @@ function generate(){
     if(!assignRoles(0)) continue
 
     for(let i=0;i<5;i++){
+      const assignedRole = rolesBySlot[i]
+      if(!assignedRole) continue
       if(slotChoices[i]==="pug"){
-        group.push({pug:true, role:roles[i], slotIndex:i})
+        group.push({pug:true, role:assignedRole, slotIndex:i})
       } else {
-        const options=slotChoices[i].filter(o=>o.role===roles[i])
+        const options=slotChoices[i].filter(o=>o.role===assignedRole)
         if(options.length===0) continue
         // clone chosen option and attach slot index
         const slotName = getSlotName(slots[i], i)
