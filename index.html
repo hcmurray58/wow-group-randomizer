@@ -659,13 +659,13 @@ function applyState(i){
 
     if(state === 'all'){
       // show every class row and show all spec labels
-      row.style.display = "block"
+      row.style.display = "flex"
       if(specSpan) specSpan.style.display = "inline"
       row.querySelectorAll(".specLabel").forEach(lbl=> lbl.style.display = "")
     } else {
       // selected-only: only show rows where at least one spec is checked; show all specs for those
       if(anySpecChecked){
-        row.style.display = "block"
+        row.style.display = "flex"
         if(specSpan) specSpan.style.display = "inline"
         row.querySelectorAll(".specLabel").forEach(lbl=> lbl.style.display = "")
       } else {
@@ -849,7 +849,7 @@ function loadPreset(i){
     })
 
     if(classTick.checked){
-      row.style.display = "block"
+      row.style.display = "flex"
       if(specSpan) specSpan.style.display = "inline"
     } else {
       row.style.display = "none"
