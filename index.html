@@ -216,7 +216,7 @@ body{
 .classRow{
   margin-bottom:6px;
   display:grid;
-  grid-template-columns: 180px 1fr 220px;
+  grid-template-columns: 180px repeat(4, 1fr) 220px;
   align-items:center;
   gap:10px;
 }
@@ -236,13 +236,11 @@ body{
 
 /* specs column occupies remaining space and aligns */
 .specs{
-  display:grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
-  gap:6px;
+  display: contents;
 }
 
 .specs label{
-  min-width:0;
+  min-width:120px;
 }
 
 /* role colours */
@@ -285,11 +283,11 @@ h1{
 .keySection{
   display:flex;
   gap:6px;
-  justify-content:flex-end; /* aligns nicely to the right */
+  justify-content:flex-end;
 }
 
 .keySection select{
-  width: 140px;
+  width:100px;
 }
 
 /* center output and copy button */
