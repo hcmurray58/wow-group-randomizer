@@ -420,6 +420,7 @@ const classes={
 }
 
 const PAGE_STATE_KEY = "wowPageState_v1"
+const LAST_RESULT_IMAGE_KEY = "wowLastResultImage_v1"
 
 function createSlots(){
   const container=document.getElementById("slots")
@@ -815,6 +816,55 @@ function savePageState(){
   }
 }
 
+function saveLastResultImage(imageDataUrl){
+  try{
+    localStorage.setItem(LAST_RESULT_IMAGE_KEY, imageDataUrl)
+  } catch(e){
+    // Ignore quota/storage failures for optional result persistence.
+  }
+}
+
+function renderResultImage(imageDataUrl){
+  const resultDiv = document.getElementById("result")
+  if(!resultDiv) return
+
+  resultDiv.innerHTML = ""
+
+  const img = document.createElement('img')
+  img.src = imageDataUrl
+  img.alt = "Group output image"
+  img.style.maxWidth = "100%"
+  img.style.display = "block"
+  resultDiv.appendChild(img)
+
+  const copyBtn = document.createElement('button')
+  copyBtn.textContent = "Copy image"
+  copyBtn.className = "wc-btn wc-primary"
+  copyBtn.onclick = async function(){
+    try{
+      if(navigator.clipboard && navigator.clipboard.write){
+        const resp = await fetch(imageDataUrl)
+        const blob = await resp.blob()
+        const item = new ClipboardItem({'image/png': blob})
+        await navigator.clipboard.write([item])
+        copyBtn.textContent = "Copied"
+        setTimeout(()=> copyBtn.textContent = "Copy image", 1500)
+      } else {
+        window.open(imageDataUrl, "_blank")
+      }
+    }catch(e){
+      window.open(imageDataUrl, "_blank")
+    }
+  }
+  resultDiv.appendChild(copyBtn)
+}
+
+function restoreLastResultImage(){
+  const imageDataUrl = localStorage.getItem(LAST_RESULT_IMAGE_KEY)
+  if(!imageDataUrl) return
+  renderResultImage(imageDataUrl)
+}
+
 function restorePageState(){
   const raw = localStorage.getItem(PAGE_STATE_KEY)
   if(!raw) return
@@ -893,7 +943,9 @@ function restorePageState(){
   })
 
   document.querySelectorAll('.slot').forEach((_, idx) => updatePresetDropdown(idx))
+  document.querySelectorAll('.slot').forEach((_, idx) => updateSlotTitle(idx))
   refreshSlotWeightDisplays()
+  restoreLastResultImage()
 }
 
 function initPageStatePersistence(){
@@ -1615,47 +1667,10 @@ function generate(){
       }
     }
 
-    // show both image and text fallback; add copy button
-    const resultDiv = document.getElementById("result")
-    resultDiv.innerHTML = ""
-
-    // image only
-    const img = document.createElement('img')
-    img.src = canvas.toDataURL('image/png')
-    img.alt = "Group output image"
-    img.style.maxWidth = "100%"
-    img.style.display = "block"
-    resultDiv.appendChild(img)
-
-    // copy button
-    const copyBtn = document.createElement('button')
-    copyBtn.textContent = "Copy image"
-    copyBtn.className = "wc-btn wc-primary"
-    copyBtn.onclick = async function(){
-      try{
-        // canvas -> blob -> clipboard
-        canvas.toBlob(async function(blob){
-          if(!blob) throw new Error("Failed to create image blob")
-          if(navigator.clipboard && navigator.clipboard.write){
-            const item = new ClipboardItem({'image/png': blob})
-            await navigator.clipboard.write([item])
-            copyBtn.textContent = "Copied"
-            setTimeout(()=> copyBtn.textContent = "Copy image", 1500)
-          } else {
-            // fallback: open image in new tab for manual copy
-            const url = URL.createObjectURL(blob)
-            window.open(url, "_blank")
-          }
-        })
-      }catch(e){
-        // fallback open data URL
-        const url = img.src
-        window.open(url, "_blank")
-      }
-    }
-    resultDiv.appendChild(copyBtn)
-
-    // (no text fallback)
+    // show image output and keep it for refresh restore
+    const generatedImage = canvas.toDataURL('image/png')
+    renderResultImage(generatedImage)
+    saveLastResultImage(generatedImage)
 
     // Update weights after successful generation
     const updatedWeightsBySlot = {}
