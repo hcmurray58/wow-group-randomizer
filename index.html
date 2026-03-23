@@ -1498,7 +1498,10 @@ function generate(){
       if(!group.some(g=>g.brez)) continue
     }
 
-    if(document.getElementById("useKey") && document.getElementById("useKey").checked){
+    let selectedKeyForOutput = null
+    const useKeyEnabled = document.getElementById("useKey") && document.getElementById("useKey").checked
+
+    if(useKeyEnabled){
       const requiredDungeons = [...document.querySelectorAll(".keyRequiredDungeon:checked")].map(cb => cb.value)
       const minLevelRaw = parseInt(document.getElementById("keyMinLevel") ? document.getElementById("keyMinLevel").value : "2", 10)
       const maxLevelRaw = parseInt(document.getElementById("keyMaxLevel") ? document.getElementById("keyMaxLevel").value : "20", 10)
@@ -1507,7 +1510,9 @@ function generate(){
       const low = Math.max(2, Math.min(minLevel, maxLevel))
       const high = Math.min(20, Math.max(minLevel, maxLevel))
 
-      const hasValidKey = group.some(g=>{
+      const keyCandidates = []
+
+      group.forEach(g=>{
         if(g.pug || !g.class) return false
         const slot = slots[g.slotIndex]
         if(!slot) return false
@@ -1528,10 +1533,15 @@ function generate(){
         if(requiredDungeons.length > 0 && !requiredDungeons.includes(keyDungeon)) return false
         if(keyLevel < low || keyLevel > high) return false
 
-        return true
+        keyCandidates.push({
+          slotName: getSlotName(slot, g.slotIndex),
+          dungeon: keyDungeon,
+          level: keyLevel
+        })
       })
 
-      if(!hasValidKey) continue
+      if(keyCandidates.length === 0) continue
+      selectedKeyForOutput = random(keyCandidates)
     }
 
     // Build nicely aligned lines using slot names and keep colouring for class + spec and role
@@ -1608,11 +1618,17 @@ function generate(){
     // compute footer lines (Lust + Brez + optional requirement status lines)
     const requireLust = document.getElementById("lustRequired").checked
     const requireBrez = document.getElementById("brezRequired").checked
+    const keyFooterText = useKeyEnabled && selectedKeyForOutput
+      ? ("Selected key: " + selectedKeyForOutput.slotName + " - " + selectedKeyForOutput.dungeon + " +" + selectedKeyForOutput.level)
+      : ""
     let footerLines = 2
     if(requireLust) footerLines += 1
     if(requireBrez) footerLines += 1
+    if(keyFooterText) footerLines += 1
 
-    const canvasWidth = leftPadding + nameFieldWidth + roleFieldWidth + classFieldWidth + maxSpecW + rightPadding + 6
+    const tableWidth = leftPadding + nameFieldWidth + roleFieldWidth + classFieldWidth + maxSpecW + rightPadding + 6
+    const keyLineWidth = keyFooterText ? (leftPadding + tempCtx.measureText(keyFooterText).width + rightPadding + 12) : 0
+    const canvasWidth = Math.max(tableWidth, keyLineWidth)
     const canvasHeight = 10 + linesData.length * lineHeight + footerLines * lineHeight + 10
     const canvas = document.createElement('canvas')
     canvas.width = Math.max(300, Math.ceil(canvasWidth))
@@ -1796,6 +1812,12 @@ function generate(){
         ctx.fillText("Battle Rez: " + (brezProvidersData.length ? "OK" : "MISSING"), leftPadding, footerY)
         footerY += lineHeight
       }
+    }
+
+    if(keyFooterText){
+      ctx.fillStyle = "#ffd86b"
+      ctx.fillText(keyFooterText, leftPadding, footerY)
+      footerY += lineHeight
     }
 
     // show image output and keep it for refresh restore
