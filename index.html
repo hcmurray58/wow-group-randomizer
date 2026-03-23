@@ -574,28 +574,34 @@ function createSlots(){
 
 createSlots()
 
+let autoSaveSuspended = false
+
+function runWithoutAutoSave(fn){
+  autoSaveSuspended = true
+  try{
+    fn()
+  } finally {
+    autoSaveSuspended = false
+  }
+}
+
 function presetSelected(i){
   const slot=document.querySelectorAll(".slot")[i]
   const sel=slot.querySelector(".presetSelect")
   const nameInput=slot.querySelector(".presetName")
 
-  // put selected preset name into text box (remove prefix)
-  if(sel.value){
-    nameInput.value = sel.value.replace("wowSlotPreset_","")
-  } else {
-    nameInput.value = ""
-  }
-
-  // ensure PUG is cleared when selecting a preset
-  const pugBox = slot.querySelector(".pug")
-  if(pugBox){
-    pugBox.checked = false
-    onPugToggle(i)
-  }
-
-  // load immediately
-  loadPreset(i)
-  updateSlotTitle(i)
+  runWithoutAutoSave(()=>{
+    // put selected preset name into text box (remove prefix)
+    if(sel.value){
+      nameInput.value = sel.value.replace("wowSlotPreset_","")
+      // load immediately for an existing preset
+      loadPreset(i)
+    } else {
+      // selecting New should not overwrite existing presets
+      nameInput.value = ""
+      updateSlotTitle(i)
+    }
+  })
 
   // refresh all dropdowns so chosen name can't be picked in other slots
   document.querySelectorAll('.slot').forEach((_, idx) => updatePresetDropdown(idx))
@@ -631,6 +637,8 @@ function collectSlotPresetData(slot){
 }
 
 function autoSaveSlot(i){
+  if(autoSaveSuspended) return
+
   const slot = document.querySelectorAll('.slot')[i]
   if(!slot) return
 
