@@ -811,7 +811,7 @@ function weightedRandom(options, weights){
   let total = 0
   const weighted = options.map(o=>{
     const key = getSpecKey(o)
-    const w = weights[key] || 0.1
+    const w = weights[key] || 0.01
     total += w
     return {option:o, weight:w}
   })
@@ -1424,7 +1424,7 @@ function generate(){
       const key = getSpecKey(g)
 
       // Reset selected spec
-      weights[key] = 0.1
+      weights[key] = 0.01
     })
 
     // Now increase all other specs by 20%
@@ -1460,7 +1460,7 @@ function generate(){
         )
 
         if(!wasSelected){
-          weights[key] = (weights[key] || 0.1) * 1.5 + 0.3
+          weights[key] = (weights[key] || 0.01) * 1.5 + 0.3
         }
       })
     })
@@ -1482,7 +1482,7 @@ function generate(){
       const weights = updatedRoleWeightsBySlot[slotName]
 
       // reset selected role
-      weights[g.role] = 0.1
+      weights[g.role] = 0.01
     })
 
     // increase other roles
@@ -1494,7 +1494,7 @@ function generate(){
         )
 
         if(!wasSelected){
-          weights[role] = (weights[role] || 0.1) * 1.5 + 0.3
+          weights[role] = (weights[role] || 0.01) * 1.5 + 0.3
         }
       })
     })
