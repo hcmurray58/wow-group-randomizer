@@ -1230,10 +1230,15 @@ function refreshSlotWeightDisplays(){
       html += "<div style='margin-bottom:4px;'><strong>Spec Weights:</strong><br>"
       const specWeightsKey = "wowWeights_" + slotName
       const specWeights = JSON.parse(localStorage.getItem(specWeightsKey) || "{}")
+      const classTotals = {}
       selectedSpecs.forEach(spec=>{
         const key = spec.dataset.class + "|" + spec.dataset.spec
-        const weight = specWeights[key] !== undefined ? specWeights[key].toFixed(4) : "1.0000"
-        html += "  " + spec.dataset.spec + ": " + weight + "<br>"
+        const specWeight = specWeights[key] !== undefined ? specWeights[key] : 1
+        classTotals[spec.dataset.class] = (classTotals[spec.dataset.class] || 0) + specWeight
+      })
+
+      Object.keys(classTotals).sort().forEach(className=>{
+        html += "  " + className + ": " + classTotals[className].toFixed(4) + "<br>"
       })
       html += "</div>"
     }
