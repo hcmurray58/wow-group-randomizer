@@ -326,7 +326,7 @@ h1{
   <label><input type="checkbox" id="lustRequired"> Require Lust</label>
   <label><input type="checkbox" id="brezRequired"> Require Battle Rez</label>
   <label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label>
-  <label><input type="checkbox" id="displayWeights"> Display all weights</label>
+  <label><input type="checkbox" id="displayWeights" onchange="displayAllWeights()"> Display all weights</label>
 </div>
 
 <div id="weightsDisplay" style="display:none; margin-top:20px; padding:10px; background:#1a1a1a; border:1px solid #444; border-radius:4px; max-height:300px; overflow-y:auto; font-family:monospace; font-size:12px; color:#ccc; white-space:pre-wrap; word-break:break-word;"></div>
@@ -1011,14 +1011,6 @@ function displayAllWeights(){
   display.textContent = output || "No weights stored yet"
   display.style.display = "block"
 }
-
-// Add event listener for weights display checkbox
-document.addEventListener("DOMContentLoaded", () => {
-  const checkbox = document.getElementById("displayWeights")
-  if(checkbox){
-    checkbox.addEventListener("change", displayAllWeights)
-  }
-})
 
 function generate(){
   const slots=[...document.querySelectorAll(".slot")]
