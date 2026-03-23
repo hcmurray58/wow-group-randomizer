@@ -1471,6 +1471,10 @@ function generate(){
     const updatedRoleWeightsBySlot = {}
 
     group.forEach(g=>{
+      // Skip role weight tracking for slots that can only ever fill one role —
+      // penalising their only role causes all future attempts to fail.
+      if(!g.pug && forcedRoles[g.slotIndex]) return
+
       const slotName = getSlotName(slots[g.slotIndex], g.slotIndex)
 
       if(!updatedRoleWeightsBySlot[slotName]){
