@@ -996,59 +996,57 @@ function generate(){
     }
   })
 
-  // Pre-compute forced roles: slots whose specs only cover one role must always get that role
-  const forcedRoles = slotChoices.map(choice => {
-    if(choice === "pug") return null
-    const uniqueRoles = [...new Set(choice.map(s => s.role))]
-    return uniqueRoles.length === 1 ? uniqueRoles[0] : null
+  // Pre-compute what roles each slot can actually fill
+  const possibleRoles = slotChoices.map(choice => {
+    if(choice === "pug") return ["tank", "healer", "dps"]
+    return [...new Set(choice.map(s => s.role))]
   })
+
+  // forcedRoles still used below when updating role weights
+  const forcedRoles = possibleRoles.map(pr => pr.length === 1 ? pr[0] : null)
 
   for(let attempt=0;attempt<10000;attempt++){
     let group=[]
-    let rolesPool = ["tank","healer","dps","dps","dps"]
-    let roles = []
-    let roleAssignmentValid = true
 
-    for(let i=0;i<5;i++){
-      let chosenRole
+    // Weighted backtracking role assignment — always finds a valid assignment if one exists.
+    // For each slot try roles in a weighted-random order; backtrack if a branch dead-ends.
+    const rolesPool = ["tank","healer","dps","dps","dps"]
+    const roles = []
 
-      if(forcedRoles[i]){
-        // This slot can only fill one role — assign it directly if still in pool
-        const poolIdx = rolesPool.indexOf(forcedRoles[i])
-        if(poolIdx === -1){ roleAssignmentValid = false; break }
-        chosenRole = forcedRoles[i]
-        rolesPool.splice(poolIdx, 1)
-      } else {
-        const slotName = getSlotName(slots[i], i)
-        const roleWeights = loadRoleWeights(slotName)
+    function assignRoles(slotIdx){
+      if(slotIdx === 5) return rolesPool.length === 0
+      const available = possibleRoles[slotIdx].filter(r => rolesPool.includes(r))
+      if(available.length === 0) return false
 
-        // only consider roles still available
-        const available = rolesPool.map(r => ({
-          role: r,
-          weight: roleWeights[r] || 1
-        }))
-
-        let total = available.reduce((sum,a)=>sum+a.weight,0)
-        let r = Math.random() * total
-
-        chosenRole = available[0].role
-        for(const a of available){
-          if(r < a.weight){
-            chosenRole = a.role
-            break
-          }
-          r -= a.weight
+      // Build a weighted-random ordering of the available roles to try
+      const slotName = getSlotName(slots[slotIdx], slotIdx)
+      const roleWeights = loadRoleWeights(slotName)
+      const weighted = available.map(r => ({ r, w: roleWeights[r] || 1 }))
+      const order = []
+      while(weighted.length > 0){
+        let total = weighted.reduce((s, x) => s + x.w, 0)
+        let rnd = Math.random() * total
+        let idx = weighted.length - 1
+        for(let j = 0; j < weighted.length; j++){
+          rnd -= weighted[j].w
+          if(rnd <= 0){ idx = j; break }
         }
-
-        // remove ONE instance from pool
-        const idx = rolesPool.indexOf(chosenRole)
-        rolesPool.splice(idx,1)
+        order.push(weighted[idx].r)
+        weighted.splice(idx, 1)
       }
 
-      roles.push(chosenRole)
+      for(const role of order){
+        const pi = rolesPool.indexOf(role)
+        rolesPool.splice(pi, 1)
+        roles.push(role)
+        if(assignRoles(slotIdx + 1)) return true
+        roles.pop()
+        rolesPool.splice(pi, 0, role)
+      }
+      return false
     }
 
-    if(!roleAssignmentValid) continue
+    if(!assignRoles(0)) continue
 
     for(let i=0;i<5;i++){
       if(slotChoices[i]==="pug"){
