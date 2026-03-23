@@ -576,7 +576,11 @@ function createSlots(){
   }
 }
 
-createSlots()
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', createSlots)
+} else {
+  createSlots()
+}
 
 function presetSelected(i){
   const slot=document.querySelectorAll(".slot")[i]
@@ -963,50 +967,51 @@ function padRight(str, width){
 
 function displayAllWeights(){
   const display = document.getElementById("weightsDisplay")
-  if(!document.getElementById("displayWeights").checked){
+  const checkbox = document.getElementById("displayWeights")
+  if(!checkbox || !checkbox.checked){
     display.style.display = "none"
     return
   }
 
   let output = ""
+  const slotNames = new Set()
   
   // Collect all slot names
-  const slots = [...document.querySelectorAll(".slot")]
-  const slotNames = new Set()
-  slots.forEach((slot, i) => {
-    for(let j = 0; j < localStorage.length; j++){
-      const key = localStorage.key(j)
-      if(key.startsWith("wowWeights_")){
-        slotNames.add(key.replace("wowWeights_", ""))
-      }
-      if(key.startsWith("wowRoleWeights_")){
-        slotNames.add(key.replace("wowRoleWeights_", ""))
-      }
+  for(let j = 0; j < localStorage.length; j++){
+    const key = localStorage.key(j)
+    if(key.startsWith("wowWeights_")){
+      slotNames.add(key.replace("wowWeights_", ""))
     }
-  })
+    if(key.startsWith("wowRoleWeights_")){
+      slotNames.add(key.replace("wowRoleWeights_", ""))
+    }
+  }
 
   // Display weights by slot
-  [...slotNames].sort().forEach(slotName => {
-    output += `\n=== ${slotName} ===\n`
+  const sortedNames = Array.from(slotNames).sort()
+  for(const slotName of sortedNames){
+    output += "\n=== " + slotName + " ===\n"
     
     // Spec weights
     const specWeightsKey = "wowWeights_" + slotName
     const specWeights = JSON.parse(localStorage.getItem(specWeightsKey) || "{}")
     if(Object.keys(specWeights).length > 0){
       output += "Spec Weights:\n"
-      Object.entries(specWeights).sort().forEach(([key, weight]) => {
-        output += `  ${padRight(key, 25)}: ${weight.toFixed(4)}\n`
-      })
+      const specEntries = Object.entries(specWeights).sort()
+      for(const [key, weight] of specEntries){
+        output += "  " + padRight(key, 25) + ": " + weight.toFixed(4) + "\n"
+      }
     }
 
     // Role weights
     const roleWeightsKey = "wowRoleWeights_" + slotName
-    const roleWeights = JSON.parse(localStorage.getItem(roleWeightsKey) || "{}") || {tank:1, healer:1, dps:1}
+    const roleWeights = JSON.parse(localStorage.getItem(roleWeightsKey) || "{}") 
+    const finalWeights = roleWeights || {tank:1, healer:1, dps:1}
     output += "Role Weights:\n"
-    output += `  ${padRight("tank", 25)}: ${roleWeights.tank.toFixed(4)}\n`
-    output += `  ${padRight("healer", 25)}: ${roleWeights.healer.toFixed(4)}\n`
-    output += `  ${padRight("dps", 25)}: ${roleWeights.dps.toFixed(4)}\n`
-  })
+    output += "  " + padRight("tank", 25) + ": " + finalWeights.tank.toFixed(4) + "\n"
+    output += "  " + padRight("healer", 25) + ": " + finalWeights.healer.toFixed(4) + "\n"
+    output += "  " + padRight("dps", 25) + ": " + finalWeights.dps.toFixed(4) + "\n"
+  }
 
   display.textContent = output || "No weights stored yet"
   display.style.display = "block"
