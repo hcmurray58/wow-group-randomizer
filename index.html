@@ -438,20 +438,30 @@ function createSlots(){
       row.className="classRow"
 
       let specHTML=""
-      classes[cls].forEach(spec=>{
-        specHTML+=`
-          <label class="specLabel ${spec.role}">
-            <input type="checkbox"
-              class="specTick"
-              data-class="${cls}"
-              data-spec="${spec.spec}"
-              data-role="${spec.role}"
-              data-lust="${spec.lust||false}"
-              data-brez="${spec.brez||false}">
-            ${spec.spec}
-          </label>
-        `
-      })
+      const maxSpecs = 4
+      const classSpecs = classes[cls]
+
+      for(let si = 0; si < maxSpecs; si++){
+        const spec = classSpecs[si]
+
+        if(spec){
+          specHTML += `
+            <label class="specLabel ${spec.role}">
+              <input type="checkbox"
+                class="specTick"
+                data-class="${cls}"
+                data-spec="${spec.spec}"
+                data-role="${spec.role}"
+                data-lust="${spec.lust||false}"
+                data-brez="${spec.brez||false}">
+              ${spec.spec}
+            </label>
+          `
+        } else {
+          // empty spacer to keep alignment
+          specHTML += `<span></span>`
+        }
+      }
 
       row.innerHTML=`
         <label style="color:${classColors[cls]}">
