@@ -968,7 +968,27 @@ function generate(){
         const slotName = getSlotName(slots[i], i)
         const weights = loadWeights(slotName)
 
-        const picked = weightedRandom(options, weights)
+        const lastGroup = window.lastGroup || []
+
+      // find last spec for this slot
+      const lastPick = lastGroup.find(g => 
+        !g.pug && g.slotIndex === i
+      )
+
+      // try to avoid same spec
+      let filteredOptions = options
+
+      if(lastPick){
+        const withoutRepeat = options.filter(o => o.spec !== lastPick.spec)
+
+        // only use filtered list if it still has options
+        if(withoutRepeat.length > 0){
+          filteredOptions = withoutRepeat
+        }
+      }
+
+      // now roll normally
+      const picked = weightedRandom(filteredOptions, weights)
         const chosen = {...picked, slotIndex:i}
         group.push(chosen)
       }
