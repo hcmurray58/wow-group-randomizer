@@ -534,8 +534,21 @@ function createSlots(){
           }
           // when a spec changes ensure state rules applied so specs visibility updates
           applyState(idx)
+
+          // autosave on spec select/unselect for named presets
+          savePreset(idx)
         })
       })
+
+      // autosave on key dungeon/key level change for named presets
+      const keyDungeonSelect = row.querySelector('.keyDungeon')
+      const keyLevelSelect = row.querySelector('.keyLevel')
+      if(keyDungeonSelect){
+        keyDungeonSelect.addEventListener('change', ()=> savePreset(i))
+      }
+      if(keyLevelSelect){
+        keyLevelSelect.addEventListener('change', ()=> savePreset(i))
+      }
     })
 
     container.appendChild(slot)
@@ -730,8 +743,12 @@ function savePreset(i){
   slot.querySelectorAll(".classRow").forEach(row=>{
     const classTick = row.querySelector(".classTick")
     const specInputs = [...row.querySelectorAll(".specTick")]
+    const keyDungeon = row.querySelector(".keyDungeon")
+    const keyLevel = row.querySelector(".keyLevel")
     preset.push({
       classEnabled: classTick.checked,
+      keyDungeon: keyDungeon ? keyDungeon.value : "",
+      keyLevel: keyLevel ? keyLevel.value : "",
       specs: specInputs.map(s=>({checked:s.checked}))
     })
   })
@@ -826,6 +843,8 @@ function loadPreset(i){
     const classTick = row.querySelector(".classTick")
     const specInputs = [...row.querySelectorAll(".specTick")]
     const specSpan = row.querySelector(".specs")
+    const keyDungeon = row.querySelector(".keyDungeon")
+    const keyLevel = row.querySelector(".keyLevel")
 
     if(!entry){
       classTick.checked = false
@@ -834,6 +853,8 @@ function loadPreset(i){
         s.checked=false
         s.parentElement.style.display = ""
       })
+      if(keyDungeon) keyDungeon.value = ""
+      if(keyLevel) keyLevel.value = ""
       if(specSpan) specSpan.style.display = "none"
       return
     }
@@ -847,6 +868,9 @@ function loadPreset(i){
       if(s.checked) anySpecChecked = true
       s.parentElement.style.display = ""
     })
+
+    if(keyDungeon) keyDungeon.value = entry.keyDungeon || ""
+    if(keyLevel) keyLevel.value = entry.keyLevel || ""
 
     if(classTick.checked){
       row.style.display = "flex"
