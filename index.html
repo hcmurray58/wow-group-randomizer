@@ -326,10 +326,8 @@ h1{
   <label><input type="checkbox" id="lustRequired"> Require Lust</label>
   <label><input type="checkbox" id="brezRequired"> Require Battle Rez</label>
   <label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label>
-  <label><input type="checkbox" id="displayWeights" onchange="displayAllWeights()"> Display all weights</label>
+  <label><input type="checkbox" id="displayWeights" onchange="refreshSlotWeightDisplays()"> Display all weights</label>
 </div>
-
-<div id="weightsDisplay" style="display:none; margin-top:20px; padding:10px; background:#1a1a1a; border:1px solid #444; border-radius:4px; max-height:300px; overflow-y:auto; font-family:monospace; font-size:12px; color:#ccc; white-space:pre-wrap; word-break:break-word;"></div>
 
 <button class="wc-btn wc-primary" onclick="generate()">Generate Group</button>
 
@@ -442,7 +440,7 @@ function createSlots(){
       </div>
       <div class="slotBody">
         <div class="classList"></div>
-        <div class="slotWeights" style="margin-top:8px; padding:8px; background:#0a0a0a; border-radius:4px; font-size:11px; color:#999;"></div>
+        <div class="slotWeights" style="display:none; margin-top:8px; padding:8px; background:#0a0a0a; border-radius:4px; font-size:11px; color:#999;"></div>
       </div>
     `
 
@@ -976,11 +974,13 @@ function padRight(str, width){
 }
 
 function refreshSlotWeightDisplays(){
+  const show = document.getElementById('displayWeights') && document.getElementById('displayWeights').checked
   const slots = document.querySelectorAll('.slot')
   slots.forEach((slot, slotIdx)=>{
-    const slotName = getSlotName(slot, slotIdx)
     const weightsDiv = slot.querySelector('.slotWeights')
-    if(!weightsDiv) return
+    if(weightsDiv) weightsDiv.style.display = show ? 'block' : 'none'
+    if(!show) return
+    const slotName = getSlotName(slot, slotIdx)
 
     let html = ""
 
@@ -1576,7 +1576,7 @@ function generate(){
         )
 
         if(!wasSelected){
-          weights[key] = (weights[key] || 0.01) * 1.5 + 0.3
+          weights[key] = Math.min((weights[key] || 0.01) * 1.5 + 0.3, 10000)
         }
       })
     })
@@ -1610,7 +1610,7 @@ function generate(){
         )
 
         if(!wasSelected){
-          weights[role] = (weights[role] || 0.01) * 3 + 3
+          weights[role] = Math.min((weights[role] || 0.01) * 3 + 3, 10000)
         }
       })
     })
