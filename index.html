@@ -574,44 +574,35 @@ function createSlots(){
 
 createSlots()
 
-let autoSaveSuspended = false
-
-function runWithoutAutoSave(fn){
-  autoSaveSuspended = true
-  try{
-    fn()
-  } finally {
-    autoSaveSuspended = false
-  }
-}
+let isApplyingPreset = false
 
 function presetSelected(i){
   const slot=document.querySelectorAll(".slot")[i]
   const sel=slot.querySelector(".presetSelect")
   const nameInput=slot.querySelector(".presetName")
 
-  runWithoutAutoSave(()=>{
-    // put selected preset name into text box (remove prefix)
-    if(sel.value){
-      nameInput.value = sel.value.replace("wowSlotPreset_","")
-      // load immediately for an existing preset
-      loadPreset(i)
-    } else {
-      // selecting New should not overwrite existing presets
-      nameInput.value = ""
-      updateSlotTitle(i)
-    }
-  })
+  if(!sel.value){
+    // New selected: no autosave target and nothing to load.
+    nameInput.value = ""
+    updateSlotTitle(i)
+    return
+  }
+
+  // Load selected preset without triggering autosave side effects.
+  isApplyingPreset = true
+  try{
+    loadPreset(i)
+  } finally {
+    isApplyingPreset = false
+  }
 
   // refresh all dropdowns so chosen name can't be picked in other slots
   document.querySelectorAll('.slot').forEach((_, idx) => updatePresetDropdown(idx))
 }
 
 function getPresetStorageKeyForSlot(slot){
-  const nameInput = slot.querySelector('.presetName')
   const select = slot.querySelector('.presetSelect')
-  const typedName = nameInput ? nameInput.value.trim() : ""
-  if(typedName) return "wowSlotPreset_" + typedName
+  // Only autosave when an existing preset is explicitly selected (not New).
   if(select && select.value) return select.value
   return ""
 }
@@ -637,7 +628,7 @@ function collectSlotPresetData(slot){
 }
 
 function autoSaveSlot(i){
-  if(autoSaveSuspended) return
+  if(isApplyingPreset) return
 
   const slot = document.querySelectorAll('.slot')[i]
   if(!slot) return
