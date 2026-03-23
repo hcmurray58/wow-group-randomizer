@@ -1006,7 +1006,11 @@ function displayAllWeights(){
     // Role weights
     const roleWeightsKey = "wowRoleWeights_" + slotName
     const roleWeights = JSON.parse(localStorage.getItem(roleWeightsKey) || "{}") 
-    const finalWeights = roleWeights || {tank:1, healer:1, dps:1}
+    const finalWeights = {
+      tank: (roleWeights.tank !== undefined ? roleWeights.tank : 1),
+      healer: (roleWeights.healer !== undefined ? roleWeights.healer : 1),
+      dps: (roleWeights.dps !== undefined ? roleWeights.dps : 1)
+    }
     output += "Role Weights:\n"
     output += "  " + padRight("tank", 25) + ": " + finalWeights.tank.toFixed(4) + "\n"
     output += "  " + padRight("healer", 25) + ": " + finalWeights.healer.toFixed(4) + "\n"
