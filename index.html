@@ -421,8 +421,10 @@ const classes={
 
 const PAGE_STATE_KEY = "wowPageState_v1"
 const LAST_RESULT_IMAGE_KEY = "wowLastResultImage_v1"
+let pageStateHydrating = false
 
 function createSlots(){
+  pageStateHydrating = true
   const container=document.getElementById("slots")
 
   for(let i=0;i<5;i++){
@@ -593,6 +595,7 @@ function createSlots(){
 
   initPageStatePersistence()
   restorePageState()
+  pageStateHydrating = false
 
   // Initial weight display refresh
   refreshSlotWeightDisplays()
@@ -809,6 +812,7 @@ function serializePageState(){
 }
 
 function savePageState(){
+  if(pageStateHydrating) return
   try{
     localStorage.setItem(PAGE_STATE_KEY, JSON.stringify(serializePageState()))
   } catch(e){
