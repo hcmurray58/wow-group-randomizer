@@ -282,6 +282,38 @@ h1{
   gap: 4px; /* slightly tighter spacing between checkboxes */
 }
 
+#keyControls{
+  width: 560px;
+  max-width: 95%;
+  margin: 6px auto 0;
+  padding: 8px 10px;
+  border: 1px solid #4d4d4d;
+  border-radius: 6px;
+  background: #111;
+}
+
+#keyControls .dungeonTicks{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 4px 12px;
+  margin-bottom: 8px;
+}
+
+#keyControls .dungeonTicks label{
+  width: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+}
+
+#keyControls .keyLevelRange{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 #slots{
   margin: 0 auto;
   max-width: calc((180px + (120px + 3ch) * 4 + 48px) * 1.3);
@@ -326,7 +358,27 @@ h1{
   <label><input type="checkbox" id="lustRequired"> Require Lust</label>
   <label><input type="checkbox" id="brezRequired"> Require Battle Rez</label>
   <label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label>
+  <label><input type="checkbox" id="useKey" onchange="onUseKeyToggle()"> Use key</label>
   <label><input type="checkbox" id="displayWeights" onchange="refreshSlotWeightDisplays()"> Display all weights</label>
+</div>
+
+<div id="keyControls" style="display:none;">
+  <div class="dungeonTicks">
+    <label><input type="checkbox" class="keyRequiredDungeon" value="Magisters' Terrace"> Magisters' Terrace</label>
+    <label><input type="checkbox" class="keyRequiredDungeon" value="Maisara Caverns"> Maisara Caverns</label>
+    <label><input type="checkbox" class="keyRequiredDungeon" value="Nexus-Point Xenas"> Nexus-Point Xenas</label>
+    <label><input type="checkbox" class="keyRequiredDungeon" value="Windrunner Spire"> Windrunner Spire</label>
+    <label><input type="checkbox" class="keyRequiredDungeon" value="Algeth'ar Academy"> Algeth'ar Academy</label>
+    <label><input type="checkbox" class="keyRequiredDungeon" value="Pit of Saron"> Pit of Saron</label>
+    <label><input type="checkbox" class="keyRequiredDungeon" value="Seat of the Triumvirate"> Seat of the Triumvirate</label>
+    <label><input type="checkbox" class="keyRequiredDungeon" value="Skyreach"> Skyreach</label>
+  </div>
+  <div class="keyLevelRange">
+    <span>Minimum key level:</span>
+    <input id="keyMinLevel" class="wc-input small" type="number" min="2" max="20" value="2">
+    <span>Maximum key level:</span>
+    <input id="keyMaxLevel" class="wc-input small" type="number" min="2" max="20" value="20">
+  </div>
 </div>
 
 <button class="wc-btn wc-primary" onclick="generate()">Generate Group</button>
@@ -684,6 +736,15 @@ function onPugToggle(i){
   savePageState()
 }
 
+function onUseKeyToggle(){
+  const useKey = document.getElementById("useKey")
+  const keyControls = document.getElementById("keyControls")
+  if(keyControls){
+    keyControls.style.display = (useKey && useKey.checked) ? "block" : "none"
+  }
+  savePageState()
+}
+
 // toggle between two states:
 // 'selected-only' (State 1): show only selected classes and all their specs
 // 'all' (State 2): show all classes; selected classes show their specs
@@ -777,6 +838,10 @@ function serializePageState(){
   const lustReq = document.getElementById("lustRequired")
   const brezReq = document.getElementById("brezRequired")
   const avoidDup = document.getElementById("avoidDuplicateDPS")
+  const useKey = document.getElementById("useKey")
+  const keyMin = document.getElementById("keyMinLevel")
+  const keyMax = document.getElementById("keyMaxLevel")
+  const keyDungeons = [...document.querySelectorAll(".keyRequiredDungeon:checked")].map(cb => cb.value)
   const displayWeights = document.getElementById("displayWeights")
 
   const topControls = {
@@ -785,6 +850,10 @@ function serializePageState(){
     lustRequired: !!(lustReq && lustReq.checked),
     brezRequired: !!(brezReq && brezReq.checked),
     avoidDuplicateDPS: !!(avoidDup && avoidDup.checked),
+    useKey: !!(useKey && useKey.checked),
+    keyMinLevel: (keyMin && keyMin.value) || "2",
+    keyMaxLevel: (keyMax && keyMax.value) || "20",
+    keyDungeons,
     displayWeights: !!(displayWeights && displayWeights.checked)
   }
 
@@ -881,11 +950,23 @@ function restorePageState(){
   }
 
   const top = pageState.topControls || {}
-  const topIds = ["tankNonPugRequired","healerNonPugRequired","lustRequired","brezRequired","avoidDuplicateDPS","displayWeights"]
+  const topIds = ["tankNonPugRequired","healerNonPugRequired","lustRequired","brezRequired","avoidDuplicateDPS","useKey","displayWeights"]
   topIds.forEach(id => {
     const el = document.getElementById(id)
     if(el && typeof top[id] === "boolean") el.checked = top[id]
   })
+
+  const keyMin = document.getElementById("keyMinLevel")
+  if(keyMin && top.keyMinLevel !== undefined) keyMin.value = top.keyMinLevel
+  const keyMax = document.getElementById("keyMaxLevel")
+  if(keyMax && top.keyMaxLevel !== undefined) keyMax.value = top.keyMaxLevel
+  if(Array.isArray(top.keyDungeons)){
+    document.querySelectorAll(".keyRequiredDungeon").forEach(cb => {
+      cb.checked = top.keyDungeons.includes(cb.value)
+    })
+  }
+
+  onUseKeyToggle()
 
   const slots = document.querySelectorAll(".slot")
   ;(pageState.slots || []).forEach((savedSlot, i)=>{
@@ -962,7 +1043,11 @@ function initPageStatePersistence(){
     "#lustRequired",
     "#brezRequired",
     "#avoidDuplicateDPS",
+    "#useKey",
+    "#keyMinLevel",
+    "#keyMaxLevel",
     "#displayWeights",
+    ".keyRequiredDungeon",
     ".pug",
     ".presetSelect",
     ".classTick",
@@ -1411,6 +1496,42 @@ function generate(){
     }
     if(document.getElementById("brezRequired").checked){
       if(!group.some(g=>g.brez)) continue
+    }
+
+    if(document.getElementById("useKey") && document.getElementById("useKey").checked){
+      const requiredDungeons = [...document.querySelectorAll(".keyRequiredDungeon:checked")].map(cb => cb.value)
+      const minLevelRaw = parseInt(document.getElementById("keyMinLevel") ? document.getElementById("keyMinLevel").value : "2", 10)
+      const maxLevelRaw = parseInt(document.getElementById("keyMaxLevel") ? document.getElementById("keyMaxLevel").value : "20", 10)
+      const minLevel = Number.isNaN(minLevelRaw) ? 2 : minLevelRaw
+      const maxLevel = Number.isNaN(maxLevelRaw) ? 20 : maxLevelRaw
+      const low = Math.max(2, Math.min(minLevel, maxLevel))
+      const high = Math.min(20, Math.max(minLevel, maxLevel))
+
+      const hasValidKey = group.some(g=>{
+        if(g.pug || !g.class) return false
+        const slot = slots[g.slotIndex]
+        if(!slot) return false
+
+        const classRow = [...slot.querySelectorAll(".classRow")].find(row=>{
+          const classLabel = row.querySelector("label")
+          const className = classLabel ? classLabel.textContent.replace(/\s+/g, " ").trim() : ""
+          return className === g.class
+        })
+
+        if(!classRow) return false
+
+        const keyDungeon = classRow.querySelector(".keyDungeon") ? classRow.querySelector(".keyDungeon").value : ""
+        const keyLevelStr = classRow.querySelector(".keyLevel") ? classRow.querySelector(".keyLevel").value : ""
+        const keyLevel = parseInt(keyLevelStr, 10)
+
+        if(!keyDungeon || Number.isNaN(keyLevel)) return false
+        if(requiredDungeons.length > 0 && !requiredDungeons.includes(keyDungeon)) return false
+        if(keyLevel < low || keyLevel > high) return false
+
+        return true
+      })
+
+      if(!hasValidKey) continue
     }
 
     // Build nicely aligned lines using slot names and keep colouring for class + spec and role
