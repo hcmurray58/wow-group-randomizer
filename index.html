@@ -442,6 +442,7 @@ function createSlots(){
       </div>
       <div class="slotBody">
         <div class="classList"></div>
+        <div class="slotWeights" style="margin-top:8px; padding:8px; background:#0a0a0a; border-radius:4px; font-size:11px; color:#999;"></div>
       </div>
     `
 
@@ -540,6 +541,9 @@ function createSlots(){
 
           // autosave on spec select/unselect for named presets
           savePreset(idx)
+
+          // refresh weight display
+          refreshSlotWeightDisplays()
         })
       })
 
@@ -574,6 +578,9 @@ function createSlots(){
 
     updateSlotTitle(i)
   }
+
+  // Initial weight display refresh
+  refreshSlotWeightDisplays()
 }
 
 if(document.readyState === 'loading'){
@@ -911,6 +918,9 @@ function loadPreset(i){
   // keep state as selected-only after load
   slot.dataset.state = 'selected-only'
   applyState(i)
+
+  // refresh weight display
+  refreshSlotWeightDisplays()
   updateSlotTitle(i)
 }
 
@@ -958,6 +968,49 @@ function updatePresetDropdown(i){
 }
 
 function random(arr){ return arr[Math.floor(Math.random()*arr.length)] }
+
+function padRight(str, width){
+  str = String(str);
+  if(str.length >= width) return str;
+  return str + " ".repeat(width - str.length);
+}
+
+function refreshSlotWeightDisplays(){
+  const slots = document.querySelectorAll('.slot')
+  slots.forEach((slot, slotIdx)=>{
+    const slotName = getSlotName(slot, slotIdx)
+    const weightsDiv = slot.querySelector('.slotWeights')
+    if(!weightsDiv) return
+
+    let html = ""
+
+    // Spec weights for selected specs
+    const selectedSpecs = slot.querySelectorAll('.specTick:checked')
+    if(selectedSpecs.length > 0){
+      html += "<div style='margin-bottom:4px;'><strong>Spec Weights:</strong><br>"
+      const specWeightsKey = "wowWeights_" + slotName
+      const specWeights = JSON.parse(localStorage.getItem(specWeightsKey) || "{}")
+      selectedSpecs.forEach(spec=>{
+        const key = spec.dataset.class + "|" + spec.dataset.spec
+        const weight = specWeights[key] !== undefined ? specWeights[key].toFixed(4) : "1.0000"
+        html += "  " + spec.dataset.spec + ": " + weight + "<br>"
+      })
+      html += "</div>"
+    }
+
+    // Role weights
+    html += "<div><strong>Role Weights:</strong><br>"
+    const roleWeightsKey = "wowRoleWeights_" + slotName
+    const roleWeights = JSON.parse(localStorage.getItem(roleWeightsKey) || "{}")
+    const tank = roleWeights.tank !== undefined ? roleWeights.tank.toFixed(4) : "1.0000"
+    const healer = roleWeights.healer !== undefined ? roleWeights.healer.toFixed(4) : "1.0000"
+    const dps = roleWeights.dps !== undefined ? roleWeights.dps.toFixed(4) : "1.0000"
+    html += "  Tank: " + tank + ", Healer: " + healer + ", DPS: " + dps + "<br>"
+    html += "</div>"
+
+    weightsDiv.innerHTML = html
+  })
+}
 
 function padRight(str, width){
   str = String(str);
@@ -1571,6 +1624,9 @@ function generate(){
     Object.entries(updatedWeightsBySlot).forEach(([slotName, weights])=>{
       saveWeights(slotName, weights)
     })
+
+    // Refresh weights display
+    refreshSlotWeightDisplays()
 
     // Refresh weights display if it's enabled
     displayAllWeights()
