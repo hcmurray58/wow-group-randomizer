@@ -235,17 +235,15 @@ body{
 
 /* specs column occupies remaining space and aligns */
 .specs{
-  display:inline-block;
+  display:grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap:6px;
   width:calc(100% - 190px);
   box-sizing:border-box;
-  margin-left:0;
 }
 
 .specs label{
-  margin-right:8px;
-  display:inline-block;
-  /* make spec labels 3 characters wider */
-  min-width: calc(120px + 3ch);      /* keep spec labels consistent width for nicer alignment */
+  min-width:0;
 }
 
 /* role colours */
