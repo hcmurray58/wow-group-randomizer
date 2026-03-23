@@ -214,14 +214,9 @@ body{
 
 /* align class column and spec column so tickboxes/names line up */
 .classRow {
-  margin-bottom: 6px;
-  display: grid;
-  grid-template-columns: 
-      180px        /* class label */
-      repeat(4, 1fr) /* 4 spec slots */
-      160px;       /* key/level dropdowns */
-  align-items: center;
-  gap: 8px;
+  display: flex;
+  align-items: center;      /* vertical alignment */
+  gap: 8px;                 /* spacing between columns */
 }
 
 /* class label column */
@@ -239,12 +234,13 @@ body{
 
 /* specs column occupies remaining space and aligns */
 .specs {
-  display: contents; /* children become direct grid items */
+  display: flex;
+  gap: 4px;                /* spacing between spec labels */
 }
 .specs label {
-  min-width: 100%;   /* fills its grid cell */
+  min-width: 120px;        /* fixed width so they align vertically across rows */
   display: flex;
-  justify-content: center; /* center text or icon */
+  justify-content: center; /* center text/icon */
 }
 
 /* role colours */
@@ -292,6 +288,11 @@ h1{
 
 .keySection select{
   width:100px;
+}
+
+.keyDungeon, .keyLevel {
+  flex-shrink: 0;          /* prevents shrinking */
+  width: 140px;            /* fixed width for alignment */
 }
 
 /* center output and copy button */
@@ -452,27 +453,27 @@ function createSlots(){
       const maxSpecs = 4
       const classSpecs = classes[cls]
 
-      for(let si = 0; si < maxSpecs; si++){
-        const spec = classSpecs[si]
+      let specsForClass = [...classes[cls]] // copy original specs
 
-        if(spec){
-          specHTML += `
-            <label class="specLabel ${spec.role}">
-              <input type="checkbox"
-                class="specTick"
-                data-class="${cls}"
-                data-spec="${spec.spec}"
-                data-role="${spec.role}"
-                data-lust="${spec.lust||false}"
-                data-brez="${spec.brez||false}">
-              ${spec.spec}
-            </label>
-          `
-        } else {
-          // empty spacer to keep alignment
-          specHTML += `<span></span>`
-        }
+      // add dummy empty specs to match maxSpecs
+      while(specsForClass.length < maxSpecs){
+        specsForClass.push({spec:"", role:"", empty:true})
       }
+
+      specsForClass.forEach(spec => {
+        specHTML += `
+          <label class="specLabel ${spec.role || ''} ${spec.empty ? 'empty' : ''}">
+            <input type="checkbox"
+              ${spec.empty ? 'disabled style="display:none;"' : ''}
+              data-class="${cls}"
+              data-spec="${spec.spec}"
+              data-role="${spec.role}"
+              data-lust="${spec.lust||false}"
+              data-brez="${spec.brez||false}">
+            ${spec.spec}
+          </label>
+        `
+      })
 
       row.innerHTML=`
         <label style="color:${classColors[cls]}">
