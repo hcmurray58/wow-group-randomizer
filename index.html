@@ -213,10 +213,11 @@ body{
 }
 
 /* align class column and spec column so tickboxes/names line up */
-.classRow {
-  display: flex;
-  align-items: center;      /* vertical alignment */
-  gap: 8px;                 /* spacing between columns */
+.classRow{
+  margin-bottom:6px;
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
 }
 
 /* class label column */
@@ -233,14 +234,18 @@ body{
 }
 
 /* specs column occupies remaining space and aligns */
-.specs {
-  display: flex;
-  gap: 4px;                /* spacing between spec labels */
+.specs{
+  display:inline-block;
+  width:calc(100% - 190px);
+  box-sizing:border-box;
+  margin-left:0;
 }
-.specs label {
-  min-width: 120px;        /* fixed width so they align vertically across rows */
-  display: flex;
-  justify-content: center; /* center text/icon */
+
+.specs label{
+  margin-right:8px;
+  display:inline-block;
+  /* make spec labels 3 characters wider */
+  min-width: calc(120px + 3ch);      /* keep spec labels consistent width for nicer alignment */
 }
 
 /* role colours */
@@ -269,7 +274,7 @@ h1{
 
 #slots{
   margin: 0 auto;
-  max-width: calc((180px + (120px + 3ch) * 4 + 48px) * 1.05);
+  max-width: calc((180px + (120px + 3ch) * 4 + 48px) * 1.35);
   width: 100%;
   box-sizing: border-box;
 }
@@ -278,21 +283,6 @@ h1{
 .wc-btn.wc-primary{
   display: block;
   margin: 12px auto;
-}
-
-.keySection {
-  display: flex;
-  gap: 4px;
-  justify-content: flex-end; /* keeps selects on right */
-}
-
-.keySection select{
-  width:100px;
-}
-
-.keyDungeon, .keyLevel {
-  flex-shrink: 0;          /* prevents shrinking */
-  width: 140px;            /* fixed width for alignment */
 }
 
 /* center output and copy button */
@@ -450,21 +440,11 @@ function createSlots(){
       row.className="classRow"
 
       let specHTML=""
-      const maxSpecs = 4
-      const classSpecs = classes[cls]
-
-      let specsForClass = [...classes[cls]] // copy original specs
-
-      // add dummy empty specs to match maxSpecs
-      while(specsForClass.length < maxSpecs){
-        specsForClass.push({spec:"", role:"", empty:true})
-      }
-
-      specsForClass.forEach(spec => {
-        specHTML += `
-          <label class="specLabel ${spec.role || ''} ${spec.empty ? 'empty' : ''}">
+      classes[cls].forEach(spec=>{
+        specHTML+=`
+          <label class="specLabel ${spec.role}">
             <input type="checkbox"
-              ${spec.empty ? 'disabled style="display:none;"' : ''}
+              class="specTick"
               data-class="${cls}"
               data-spec="${spec.spec}"
               data-role="${spec.role}"
@@ -483,42 +463,40 @@ function createSlots(){
 
         <span class="specs">${specHTML}</span>
 
-        <div class="keySection">
-          <select class="keyDungeon wc-input small">
-            <option value="">No Key</option>
-            <option>Magisters' Terrace</option>
-            <option>Maisara Caverns</option>
-            <option>Nexus-Point Xenas</option>
-            <option>Windrunner Spire</option>
-            <option>Algeth'ar Academy</option>
-            <option>Pit of Saron</option>
-            <option>Seat of the Triumvirate</option>
-            <option>Skyreach</option>
-          </select>
+        <select class="keyDungeon wc-input small">
+          <option value="">No Key</option>
+          <option>Magisters' Terrace</option>
+          <option>Maisara Caverns</option>
+          <option>Nexus-Point Xenas</option>
+          <option>Windrunner Spire</option>
+          <option>Algeth'ar Academy</option>
+          <option>Pit of Saron</option>
+          <option>Seat of the Triumvirate</option>
+          <option>Skyreach</option>
+        </select>
 
-          <select class="keyLevel wc-input small">
-            <option value="">Lvl</option>
-            <option>2</option>
-            <option>3</option>
-            <option>4</option>
-            <option>5</option>
-            <option>6</option>
-            <option>7</option>
-            <option>8</option>
-            <option>9</option>
-            <option>10</option>
-            <option>11</option>
-            <option>12</option>
-            <option>13</option>
-            <option>14</option>
-            <option>15</option>
-            <option>16</option>
-            <option>17</option>
-            <option>18</option>
-            <option>19</option>
-            <option>20</option>
-          </select>
-        </div>
+        <select class="keyLevel wc-input small">
+          <option value="">Lvl</option>
+          <option>2</option>
+          <option>3</option>
+          <option>4</option>
+          <option>5</option>
+          <option>6</option>
+          <option>7</option>
+          <option>8</option>
+          <option>9</option>
+          <option>10</option>
+          <option>11</option>
+          <option>12</option>
+          <option>13</option>
+          <option>14</option>
+          <option>15</option>
+          <option>16</option>
+          <option>17</option>
+          <option>18</option>
+          <option>19</option>
+          <option>20</option>
+        </select>
 
         
       `
