@@ -419,6 +419,8 @@ const classes={
   ]
 }
 
+const PAGE_STATE_KEY = "wowPageState_v1"
+
 function createSlots(){
   const container=document.getElementById("slots")
 
@@ -549,10 +551,18 @@ function createSlots(){
       const keyDungeonSelect = row.querySelector('.keyDungeon')
       const keyLevelSelect = row.querySelector('.keyLevel')
       if(keyDungeonSelect){
-        keyDungeonSelect.addEventListener('change', ()=> savePreset(i))
+        keyDungeonSelect.addEventListener('change', ()=>{
+          savePreset(i)
+          refreshSlotWeightDisplays()
+          savePageState()
+        })
       }
       if(keyLevelSelect){
-        keyLevelSelect.addEventListener('change', ()=> savePreset(i))
+        keyLevelSelect.addEventListener('change', ()=>{
+          savePreset(i)
+          refreshSlotWeightDisplays()
+          savePageState()
+        })
       }
     })
 
@@ -561,7 +571,10 @@ function createSlots(){
 
     // make the preset name input update the header live
     const nameInput = slot.querySelector('.presetName')
-    nameInput.addEventListener('input', ()=> updateSlotTitle(i))
+    nameInput.addEventListener('input', ()=>{
+      updateSlotTitle(i)
+      savePageState()
+    })
 
     // set initial state: selected-only (State 1)
     slot.dataset.state = 'selected-only'
@@ -576,6 +589,9 @@ function createSlots(){
 
     updateSlotTitle(i)
   }
+
+  initPageStatePersistence()
+  restorePageState()
 
   // Initial weight display refresh
   refreshSlotWeightDisplays()
@@ -612,6 +628,7 @@ function presetSelected(i){
 
   // refresh all dropdowns so chosen name can't be picked in other slots
   document.querySelectorAll('.slot').forEach((_, idx) => updatePresetDropdown(idx))
+  savePageState()
 }
 
 function onPugToggle(i){
@@ -659,6 +676,8 @@ function onPugToggle(i){
     applyState(i)
   }
   updateSlotTitle(i)
+  refreshSlotWeightDisplays()
+  savePageState()
 }
 
 // toggle between two states:
@@ -671,6 +690,8 @@ function toggleState(i){
   slot.dataset.state = next
   applyState(i)
   updateSlotTitle(i)
+  refreshSlotWeightDisplays()
+  savePageState()
 }
 
 function applyState(i){
@@ -746,6 +767,157 @@ function getSlotName(slot, i){
   return `Slot ${i+1}`
 }
 
+function serializePageState(){
+  const topControls = {
+    tankNonPugRequired: !!document.getElementById("tankNonPugRequired")?.checked,
+    healerNonPugRequired: !!document.getElementById("healerNonPugRequired")?.checked,
+    lustRequired: !!document.getElementById("lustRequired")?.checked,
+    brezRequired: !!document.getElementById("brezRequired")?.checked,
+    avoidDuplicateDPS: !!document.getElementById("avoidDuplicateDPS")?.checked,
+    displayWeights: !!document.getElementById("displayWeights")?.checked
+  }
+
+  const slots = [...document.querySelectorAll(".slot")].map(slot => {
+    const rows = [...slot.querySelectorAll(".classRow")].map(row => ({
+      classEnabled: !!row.querySelector(".classTick")?.checked,
+      keyDungeon: row.querySelector(".keyDungeon")?.value || "",
+      keyLevel: row.querySelector(".keyLevel")?.value || "",
+      specs: [...row.querySelectorAll(".specTick")].map(s => !!s.checked)
+    }))
+
+    return {
+      pug: !!slot.querySelector(".pug")?.checked,
+      state: slot.dataset.state || "selected-only",
+      presetName: slot.querySelector(".presetName")?.value || "",
+      presetSelect: slot.querySelector(".presetSelect")?.value || "",
+      rows
+    }
+  })
+
+  return { topControls, slots }
+}
+
+function savePageState(){
+  try{
+    localStorage.setItem(PAGE_STATE_KEY, JSON.stringify(serializePageState()))
+  } catch(e){
+    // Ignore quota/storage failures for optional UI persistence.
+  }
+}
+
+function restorePageState(){
+  const raw = localStorage.getItem(PAGE_STATE_KEY)
+  if(!raw) return
+
+  let pageState
+  try{
+    pageState = JSON.parse(raw)
+  } catch(e){
+    return
+  }
+
+  const top = pageState.topControls || {}
+  const topIds = ["tankNonPugRequired","healerNonPugRequired","lustRequired","brezRequired","avoidDuplicateDPS","displayWeights"]
+  topIds.forEach(id => {
+    const el = document.getElementById(id)
+    if(el && typeof top[id] === "boolean") el.checked = top[id]
+  })
+
+  const slots = document.querySelectorAll(".slot")
+  ;(pageState.slots || []).forEach((savedSlot, i)=>{
+    const slot = slots[i]
+    if(!slot || !savedSlot) return
+
+    if(savedSlot.state === "all" || savedSlot.state === "selected-only"){
+      slot.dataset.state = savedSlot.state
+    }
+
+    const nameInput = slot.querySelector(".presetName")
+    if(nameInput) nameInput.value = savedSlot.presetName || ""
+
+    const presetSelect = slot.querySelector(".presetSelect")
+    if(presetSelect){
+      const hasOption = [...presetSelect.options].some(o => o.value === (savedSlot.presetSelect || ""))
+      presetSelect.value = hasOption ? (savedSlot.presetSelect || "") : ""
+    }
+
+    const classRows = slot.querySelectorAll(".classRow")
+    ;(savedSlot.rows || []).forEach((savedRow, ri)=>{
+      const row = classRows[ri]
+      if(!row || !savedRow) return
+
+      const classTick = row.querySelector(".classTick")
+      if(classTick) classTick.checked = !!savedRow.classEnabled
+
+      const keyDungeon = row.querySelector(".keyDungeon")
+      if(keyDungeon) keyDungeon.value = savedRow.keyDungeon || ""
+
+      const keyLevel = row.querySelector(".keyLevel")
+      if(keyLevel) keyLevel.value = savedRow.keyLevel || ""
+
+      const specs = row.querySelectorAll(".specTick")
+      ;(savedRow.specs || []).forEach((isChecked, si)=>{
+        if(specs[si]) specs[si].checked = !!isChecked
+      })
+    })
+
+    const pugBox = slot.querySelector(".pug")
+    if(pugBox) pugBox.checked = !!savedSlot.pug
+
+    applyState(i)
+
+    const classList = slot.querySelector(".classList")
+    if(classList){
+      if(pugBox && pugBox.checked){
+        if(slot.dataset.state === "selected-only") classList.style.display = "none"
+        else classList.style.display = "block"
+        classList.querySelectorAll("input").forEach(inp => inp.disabled = true)
+      } else {
+        classList.style.display = "block"
+        classList.querySelectorAll("input").forEach(inp => inp.disabled = false)
+        applyState(i)
+      }
+    }
+
+    updateSlotTitle(i)
+  })
+
+  document.querySelectorAll('.slot').forEach((_, idx) => updatePresetDropdown(idx))
+  refreshSlotWeightDisplays()
+}
+
+function initPageStatePersistence(){
+  if(window.__pageStatePersistenceReady) return
+  window.__pageStatePersistenceReady = true
+
+  const trackedChangeSelectors = [
+    "#tankNonPugRequired",
+    "#healerNonPugRequired",
+    "#lustRequired",
+    "#brezRequired",
+    "#avoidDuplicateDPS",
+    "#displayWeights",
+    ".pug",
+    ".presetSelect",
+    ".classTick",
+    ".specTick",
+    ".keyDungeon",
+    ".keyLevel"
+  ].join(",")
+
+  document.addEventListener("change", e => {
+    if(e.target && e.target.matches(trackedChangeSelectors)){
+      savePageState()
+    }
+  })
+
+  document.addEventListener("input", e => {
+    if(e.target && e.target.matches(".presetName")){
+      savePageState()
+    }
+  })
+}
+
 function savePreset(i){
   const slot=document.querySelectorAll(".slot")[i]
   const name=slot.querySelector(".presetName").value
@@ -771,6 +943,7 @@ function savePreset(i){
   slot.querySelector(".presetSelect").value="wowSlotPreset_"+name
 
   updateSlotTitle(i)
+  savePageState()
 }
 
 function getWeightsKey(slotName){
@@ -919,6 +1092,7 @@ function loadPreset(i){
 
   // refresh weight display
   refreshSlotWeightDisplays()
+  savePageState()
   updateSlotTitle(i)
 }
 
@@ -1010,68 +1184,6 @@ function refreshSlotWeightDisplays(){
 
     weightsDiv.innerHTML = html
   })
-}
-
-function padRight(str, width){
-  str = String(str);
-  if(str.length >= width) return str;
-  return str + " ".repeat(width - str.length);
-}
-
-function displayAllWeights(){
-  const display = document.getElementById("weightsDisplay")
-  const checkbox = document.getElementById("displayWeights")
-  if(!checkbox || !checkbox.checked){
-    display.style.display = "none"
-    return
-  }
-
-  let output = ""
-  const slotNames = new Set()
-  
-  // Collect all slot names
-  for(let j = 0; j < localStorage.length; j++){
-    const key = localStorage.key(j)
-    if(key.startsWith("wowWeights_")){
-      slotNames.add(key.replace("wowWeights_", ""))
-    }
-    if(key.startsWith("wowRoleWeights_")){
-      slotNames.add(key.replace("wowRoleWeights_", ""))
-    }
-  }
-
-  // Display weights by slot
-  const sortedNames = Array.from(slotNames).sort()
-  for(const slotName of sortedNames){
-    output += "\n=== " + slotName + " ===\n"
-    
-    // Spec weights
-    const specWeightsKey = "wowWeights_" + slotName
-    const specWeights = JSON.parse(localStorage.getItem(specWeightsKey) || "{}")
-    if(Object.keys(specWeights).length > 0){
-      output += "Spec Weights:\n"
-      const specEntries = Object.entries(specWeights).sort()
-      for(const [key, weight] of specEntries){
-        output += "  " + padRight(key, 25) + ": " + weight.toFixed(4) + "\n"
-      }
-    }
-
-    // Role weights
-    const roleWeightsKey = "wowRoleWeights_" + slotName
-    const roleWeights = JSON.parse(localStorage.getItem(roleWeightsKey) || "{}") 
-    const finalWeights = {
-      tank: (roleWeights.tank !== undefined ? roleWeights.tank : 1),
-      healer: (roleWeights.healer !== undefined ? roleWeights.healer : 1),
-      dps: (roleWeights.dps !== undefined ? roleWeights.dps : 1)
-    }
-    output += "Role Weights:\n"
-    output += "  " + padRight("tank", 25) + ": " + finalWeights.tank.toFixed(4) + "\n"
-    output += "  " + padRight("healer", 25) + ": " + finalWeights.healer.toFixed(4) + "\n"
-    output += "  " + padRight("dps", 25) + ": " + finalWeights.dps.toFixed(4) + "\n"
-  }
-
-  display.textContent = output || "No weights stored yet"
-  display.style.display = "block"
 }
 
 function generate(){
@@ -1637,9 +1749,7 @@ function generate(){
 
     // Refresh weights display
     refreshSlotWeightDisplays()
-
-    // Refresh weights display if it's enabled
-    displayAllWeights()
+    savePageState()
 
     return
   }
