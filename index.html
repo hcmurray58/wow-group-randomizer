@@ -213,12 +213,15 @@ body{
 }
 
 /* align class column and spec column so tickboxes/names line up */
-.classRow{
-  margin-bottom:6px;
-  display:grid;
-  grid-template-columns: 180px repeat(4, 1fr) 220px;
-  align-items:center;
-  gap:10px;
+.classRow {
+  margin-bottom: 6px;
+  display: grid;
+  grid-template-columns: 
+      180px        /* class label */
+      repeat(4, 1fr) /* 4 spec slots */
+      160px;       /* key/level dropdowns */
+  align-items: center;
+  gap: 8px;
 }
 
 /* class label column */
@@ -235,12 +238,13 @@ body{
 }
 
 /* specs column occupies remaining space and aligns */
-.specs{
-  display: contents;
+.specs {
+  display: contents; /* children become direct grid items */
 }
-
-.specs label{
-  min-width:120px;
+.specs label {
+  min-width: 100%;   /* fills its grid cell */
+  display: flex;
+  justify-content: center; /* center text or icon */
 }
 
 /* role colours */
@@ -280,10 +284,10 @@ h1{
   margin: 12px auto;
 }
 
-.keySection{
-  display:flex;
-  gap:6px;
-  justify-content:flex-end;
+.keySection {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end; /* keeps selects on right */
 }
 
 .keySection select{
