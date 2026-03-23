@@ -456,12 +456,7 @@ function createSlots(){
       })
 
       row.innerHTML=`
-        <label style="color:${classColors[cls]}">
-          <input type="checkbox" class="classTick" onclick="event.stopPropagation()">
-          ${cls}
-        </label>
-
-        <span class="specs">${specHTML}</span>
+        
 
         <select class="keyDungeon wc-input small">
           <option value="">No Key</option>
@@ -497,6 +492,13 @@ function createSlots(){
           <option>19</option>
           <option>20</option>
         </select>
+
+        <label style="color:${classColors[cls]}">
+          <input type="checkbox" class="classTick" onclick="event.stopPropagation()">
+          ${cls}
+        </label>
+
+        <span class="specs">${specHTML}</span>
 
         
       `
