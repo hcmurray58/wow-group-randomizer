@@ -768,28 +768,38 @@ function getSlotName(slot, i){
 }
 
 function serializePageState(){
+  const tankReq = document.getElementById("tankNonPugRequired")
+  const healerReq = document.getElementById("healerNonPugRequired")
+  const lustReq = document.getElementById("lustRequired")
+  const brezReq = document.getElementById("brezRequired")
+  const avoidDup = document.getElementById("avoidDuplicateDPS")
+  const displayWeights = document.getElementById("displayWeights")
+
   const topControls = {
-    tankNonPugRequired: !!document.getElementById("tankNonPugRequired")?.checked,
-    healerNonPugRequired: !!document.getElementById("healerNonPugRequired")?.checked,
-    lustRequired: !!document.getElementById("lustRequired")?.checked,
-    brezRequired: !!document.getElementById("brezRequired")?.checked,
-    avoidDuplicateDPS: !!document.getElementById("avoidDuplicateDPS")?.checked,
-    displayWeights: !!document.getElementById("displayWeights")?.checked
+    tankNonPugRequired: !!(tankReq && tankReq.checked),
+    healerNonPugRequired: !!(healerReq && healerReq.checked),
+    lustRequired: !!(lustReq && lustReq.checked),
+    brezRequired: !!(brezReq && brezReq.checked),
+    avoidDuplicateDPS: !!(avoidDup && avoidDup.checked),
+    displayWeights: !!(displayWeights && displayWeights.checked)
   }
 
   const slots = [...document.querySelectorAll(".slot")].map(slot => {
+    const pug = slot.querySelector(".pug")
+    const presetName = slot.querySelector(".presetName")
+    const presetSelect = slot.querySelector(".presetSelect")
     const rows = [...slot.querySelectorAll(".classRow")].map(row => ({
-      classEnabled: !!row.querySelector(".classTick")?.checked,
-      keyDungeon: row.querySelector(".keyDungeon")?.value || "",
-      keyLevel: row.querySelector(".keyLevel")?.value || "",
+      classEnabled: !!(row.querySelector(".classTick") && row.querySelector(".classTick").checked),
+      keyDungeon: (row.querySelector(".keyDungeon") && row.querySelector(".keyDungeon").value) || "",
+      keyLevel: (row.querySelector(".keyLevel") && row.querySelector(".keyLevel").value) || "",
       specs: [...row.querySelectorAll(".specTick")].map(s => !!s.checked)
     }))
 
     return {
-      pug: !!slot.querySelector(".pug")?.checked,
+      pug: !!(pug && pug.checked),
       state: slot.dataset.state || "selected-only",
-      presetName: slot.querySelector(".presetName")?.value || "",
-      presetSelect: slot.querySelector(".presetSelect")?.value || "",
+      presetName: (presetName && presetName.value) || "",
+      presetSelect: (presetSelect && presetSelect.value) || "",
       rows
     }
   })
