@@ -215,9 +215,10 @@ body{
 /* align class column and spec column so tickboxes/names line up */
 .classRow{
   margin-bottom:6px;
-  display:flex;
-  align-items:flex-start;
-  gap:8px;
+  display:grid;
+  grid-template-columns: 180px 1fr 220px;
+  align-items:center;
+  gap:10px;
 }
 
 /* class label column */
@@ -238,8 +239,6 @@ body{
   display:grid;
   grid-template-columns: repeat(4, minmax(120px, 1fr));
   gap:6px;
-  width:calc(100% - 190px);
-  box-sizing:border-box;
 }
 
 .specs label{
@@ -281,6 +280,16 @@ h1{
 .wc-btn.wc-primary{
   display: block;
   margin: 12px auto;
+}
+
+.keySection{
+  display:flex;
+  gap:6px;
+  justify-content:flex-end; /* aligns nicely to the right */
+}
+
+.keySection select{
+  width: 140px;
 }
 
 /* center output and copy button */
@@ -471,40 +480,42 @@ function createSlots(){
 
         <span class="specs">${specHTML}</span>
 
-        <select class="keyDungeon wc-input small">
-          <option value="">No Key</option>
-          <option>Magisters' Terrace</option>
-          <option>Maisara Caverns</option>
-          <option>Nexus-Point Xenas</option>
-          <option>Windrunner Spire</option>
-          <option>Algeth'ar Academy</option>
-          <option>Pit of Saron</option>
-          <option>Seat of the Triumvirate</option>
-          <option>Skyreach</option>
-        </select>
+        <div class="keySection">
+          <select class="keyDungeon wc-input small">
+            <option value="">No Key</option>
+            <option>Magisters' Terrace</option>
+            <option>Maisara Caverns</option>
+            <option>Nexus-Point Xenas</option>
+            <option>Windrunner Spire</option>
+            <option>Algeth'ar Academy</option>
+            <option>Pit of Saron</option>
+            <option>Seat of the Triumvirate</option>
+            <option>Skyreach</option>
+          </select>
 
-        <select class="keyLevel wc-input small">
-          <option value="">Lvl</option>
-          <option>2</option>
-          <option>3</option>
-          <option>4</option>
-          <option>5</option>
-          <option>6</option>
-          <option>7</option>
-          <option>8</option>
-          <option>9</option>
-          <option>10</option>
-          <option>11</option>
-          <option>12</option>
-          <option>13</option>
-          <option>14</option>
-          <option>15</option>
-          <option>16</option>
-          <option>17</option>
-          <option>18</option>
-          <option>19</option>
-          <option>20</option>
-        </select>
+          <select class="keyLevel wc-input small">
+            <option value="">Lvl</option>
+            <option>2</option>
+            <option>3</option>
+            <option>4</option>
+            <option>5</option>
+            <option>6</option>
+            <option>7</option>
+            <option>8</option>
+            <option>9</option>
+            <option>10</option>
+            <option>11</option>
+            <option>12</option>
+            <option>13</option>
+            <option>14</option>
+            <option>15</option>
+            <option>16</option>
+            <option>17</option>
+            <option>18</option>
+            <option>19</option>
+            <option>20</option>
+          </select>
+        </div>
 
         
       `
