@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -143,7 +144,7 @@ body{
 
 #slots{
   margin: 0 auto;
-  max-width: calc((180px + (120px + 3ch) * 4 + 48px) * 1.3);
+  max-width: calc((180px + (120px + 3ch) * 4 + 48px) * 1.15);
   width: 100%;
   box-sizing: border-box;
 }
@@ -169,7 +170,7 @@ body{
   border:1px solid #4d4d4d; /* slightly lighter border (~10% lighter) */
   margin: 0 auto 10px;
   /* increase width by ~15% for a bit more room */
-  max-width: calc((180px + (120px + 3ch) * 4 + 48px) * 1.3);
+  max-width: calc((180px + (120px + 3ch) * 4 + 48px) * 1.15);
   width: 100%;
   box-sizing: border-box;
 }
@@ -236,18 +237,8 @@ body{
 /* specs column occupies remaining space and aligns */
 .specs{
   display:inline-block;
-  flex:1;
-  min-width:0;
+  width:calc(100% - 190px);
   box-sizing:border-box;
-  margin-left:0;
-}
-
-/* keep key selectors pinned to the right edge of each row */
-.classRow .keyDungeon{
-  margin-left:auto;
-}
-
-.classRow .keyLevel{
   margin-left:0;
 }
 
@@ -284,7 +275,7 @@ h1{
 
 #slots{
   margin: 0 auto;
-  max-width: calc((180px + (120px + 3ch) * 4 + 48px) * 1.3);
+  max-width: calc((180px + (120px + 3ch) * 4 + 48px) * 1.05);
   width: 100%;
   box-sizing: border-box;
 }
@@ -470,45 +461,7 @@ function createSlots(){
           <input type="checkbox" class="classTick" onclick="event.stopPropagation()">
           ${cls}
         </label>
-
         <span class="specs">${specHTML}</span>
-
-        <select class="keyDungeon wc-input small">
-          <option value="">No Key</option>
-          <option>Magisters' Terrace</option>
-          <option>Maisara Caverns</option>
-          <option>Nexus-Point Xenas</option>
-          <option>Windrunner Spire</option>
-          <option>Algeth'ar Academy</option>
-          <option>Pit of Saron</option>
-          <option>Seat of the Triumvirate</option>
-          <option>Skyreach</option>
-        </select>
-
-        <select class="keyLevel wc-input small">
-          <option value="">Lvl</option>
-          <option>2</option>
-          <option>3</option>
-          <option>4</option>
-          <option>5</option>
-          <option>6</option>
-          <option>7</option>
-          <option>8</option>
-          <option>9</option>
-          <option>10</option>
-          <option>11</option>
-          <option>12</option>
-          <option>13</option>
-          <option>14</option>
-          <option>15</option>
-          <option>16</option>
-          <option>17</option>
-          <option>18</option>
-          <option>19</option>
-          <option>20</option>
-        </select>
-
-        
       `
       classList.appendChild(row)
 
@@ -534,21 +487,8 @@ function createSlots(){
           }
           // when a spec changes ensure state rules applied so specs visibility updates
           applyState(idx)
-
-          // autosave on spec select/unselect for named presets
-          savePreset(idx)
         })
       })
-
-      // autosave on key dungeon/key level change for named presets
-      const keyDungeonSelect = row.querySelector('.keyDungeon')
-      const keyLevelSelect = row.querySelector('.keyLevel')
-      if(keyDungeonSelect){
-        keyDungeonSelect.addEventListener('change', ()=> savePreset(i))
-      }
-      if(keyLevelSelect){
-        keyLevelSelect.addEventListener('change', ()=> savePreset(i))
-      }
     })
 
     container.appendChild(slot)
@@ -672,13 +612,13 @@ function applyState(i){
 
     if(state === 'all'){
       // show every class row and show all spec labels
-      row.style.display = "flex"
+      row.style.display = "block"
       if(specSpan) specSpan.style.display = "inline"
       row.querySelectorAll(".specLabel").forEach(lbl=> lbl.style.display = "")
     } else {
       // selected-only: only show rows where at least one spec is checked; show all specs for those
       if(anySpecChecked){
-        row.style.display = "flex"
+        row.style.display = "block"
         if(specSpan) specSpan.style.display = "inline"
         row.querySelectorAll(".specLabel").forEach(lbl=> lbl.style.display = "")
       } else {
@@ -743,12 +683,8 @@ function savePreset(i){
   slot.querySelectorAll(".classRow").forEach(row=>{
     const classTick = row.querySelector(".classTick")
     const specInputs = [...row.querySelectorAll(".specTick")]
-    const keyDungeon = row.querySelector(".keyDungeon")
-    const keyLevel = row.querySelector(".keyLevel")
     preset.push({
       classEnabled: classTick.checked,
-      keyDungeon: keyDungeon ? keyDungeon.value : "",
-      keyLevel: keyLevel ? keyLevel.value : "",
       specs: specInputs.map(s=>({checked:s.checked}))
     })
   })
@@ -843,8 +779,6 @@ function loadPreset(i){
     const classTick = row.querySelector(".classTick")
     const specInputs = [...row.querySelectorAll(".specTick")]
     const specSpan = row.querySelector(".specs")
-    const keyDungeon = row.querySelector(".keyDungeon")
-    const keyLevel = row.querySelector(".keyLevel")
 
     if(!entry){
       classTick.checked = false
@@ -853,8 +787,6 @@ function loadPreset(i){
         s.checked=false
         s.parentElement.style.display = ""
       })
-      if(keyDungeon) keyDungeon.value = ""
-      if(keyLevel) keyLevel.value = ""
       if(specSpan) specSpan.style.display = "none"
       return
     }
@@ -869,11 +801,8 @@ function loadPreset(i){
       s.parentElement.style.display = ""
     })
 
-    if(keyDungeon) keyDungeon.value = entry.keyDungeon || ""
-    if(keyLevel) keyLevel.value = entry.keyLevel || ""
-
     if(classTick.checked){
-      row.style.display = "flex"
+      row.style.display = "block"
       if(specSpan) specSpan.style.display = "inline"
     } else {
       row.style.display = "none"
@@ -1040,27 +969,7 @@ function generate(){
         const slotName = getSlotName(slots[i], i)
         const weights = loadWeights(slotName)
 
-        const lastGroup = window.lastGroup || []
-
-      // find last spec for this slot
-      const lastPick = lastGroup.find(g => 
-        !g.pug && g.slotIndex === i
-      )
-
-      // try to avoid same spec
-      let filteredOptions = options
-
-      if(lastPick){
-        const withoutRepeat = options.filter(o => o.spec !== lastPick.spec)
-
-        // only use filtered list if it still has options
-        if(withoutRepeat.length > 0){
-          filteredOptions = withoutRepeat
-        }
-      }
-
-      // now roll normally
-      const picked = weightedRandom(filteredOptions, weights)
+        const picked = weightedRandom(options, weights)
         const chosen = {...picked, slotIndex:i}
         group.push(chosen)
       }
