@@ -236,8 +236,18 @@ body{
 /* specs column occupies remaining space and aligns */
 .specs{
   display:inline-block;
-  width:calc(100% - 190px);
+  flex:1;
+  min-width:0;
   box-sizing:border-box;
+  margin-left:0;
+}
+
+/* keep key selectors pinned to the right edge of each row */
+.classRow .keyDungeon{
+  margin-left:auto;
+}
+
+.classRow .keyLevel{
   margin-left:0;
 }
 
@@ -456,7 +466,12 @@ function createSlots(){
       })
 
       row.innerHTML=`
-        
+        <label style="color:${classColors[cls]}">
+          <input type="checkbox" class="classTick" onclick="event.stopPropagation()">
+          ${cls}
+        </label>
+
+        <span class="specs">${specHTML}</span>
 
         <select class="keyDungeon wc-input small">
           <option value="">No Key</option>
@@ -492,13 +507,6 @@ function createSlots(){
           <option>19</option>
           <option>20</option>
         </select>
-
-        <label style="color:${classColors[cls]}">
-          <input type="checkbox" class="classTick" onclick="event.stopPropagation()">
-          ${cls}
-        </label>
-
-        <span class="specs">${specHTML}</span>
 
         
       `
