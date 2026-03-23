@@ -326,7 +326,10 @@ h1{
   <label><input type="checkbox" id="lustRequired"> Require Lust</label>
   <label><input type="checkbox" id="brezRequired"> Require Battle Rez</label>
   <label><input type="checkbox" id="avoidDuplicateDPS"> Avoid duplicate DPS specs</label>
+  <label><input type="checkbox" id="displayWeights"> Display all weights</label>
 </div>
+
+<div id="weightsDisplay" style="display:none; margin-top:20px; padding:10px; background:#1a1a1a; border:1px solid #444; border-radius:4px; max-height:300px; overflow-y:auto; font-family:monospace; font-size:12px; color:#ccc; white-space:pre-wrap; word-break:break-word;"></div>
 
 <button class="wc-btn wc-primary" onclick="generate()">Generate Group</button>
 
@@ -958,6 +961,65 @@ function padRight(str, width){
   return str + " ".repeat(width - str.length);
 }
 
+function displayAllWeights(){
+  const display = document.getElementById("weightsDisplay")
+  if(!document.getElementById("displayWeights").checked){
+    display.style.display = "none"
+    return
+  }
+
+  let output = ""
+  
+  // Collect all slot names
+  const slots = [...document.querySelectorAll(".slot")]
+  const slotNames = new Set()
+  slots.forEach((slot, i) => {
+    for(let j = 0; j < localStorage.length; j++){
+      const key = localStorage.key(j)
+      if(key.startsWith("wowWeights_")){
+        slotNames.add(key.replace("wowWeights_", ""))
+      }
+      if(key.startsWith("wowRoleWeights_")){
+        slotNames.add(key.replace("wowRoleWeights_", ""))
+      }
+    }
+  })
+
+  // Display weights by slot
+  [...slotNames].sort().forEach(slotName => {
+    output += `\n=== ${slotName} ===\n`
+    
+    // Spec weights
+    const specWeightsKey = "wowWeights_" + slotName
+    const specWeights = JSON.parse(localStorage.getItem(specWeightsKey) || "{}")
+    if(Object.keys(specWeights).length > 0){
+      output += "Spec Weights:\n"
+      Object.entries(specWeights).sort().forEach(([key, weight]) => {
+        output += `  ${padRight(key, 25)}: ${weight.toFixed(4)}\n`
+      })
+    }
+
+    // Role weights
+    const roleWeightsKey = "wowRoleWeights_" + slotName
+    const roleWeights = JSON.parse(localStorage.getItem(roleWeightsKey) || "{}") || {tank:1, healer:1, dps:1}
+    output += "Role Weights:\n"
+    output += `  ${padRight("tank", 25)}: ${roleWeights.tank.toFixed(4)}\n`
+    output += `  ${padRight("healer", 25)}: ${roleWeights.healer.toFixed(4)}\n`
+    output += `  ${padRight("dps", 25)}: ${roleWeights.dps.toFixed(4)}\n`
+  })
+
+  display.textContent = output || "No weights stored yet"
+  display.style.display = "block"
+}
+
+// Add event listener for weights display checkbox
+document.addEventListener("DOMContentLoaded", () => {
+  const checkbox = document.getElementById("displayWeights")
+  if(checkbox){
+    checkbox.addEventListener("change", displayAllWeights)
+  }
+})
+
 function generate(){
   const slots=[...document.querySelectorAll(".slot")]
   let slotChoices=[]
@@ -1508,6 +1570,9 @@ function generate(){
     Object.entries(updatedWeightsBySlot).forEach(([slotName, weights])=>{
       saveWeights(slotName, weights)
     })
+
+    // Refresh weights display if it's enabled
+    displayAllWeights()
 
     return
   }
