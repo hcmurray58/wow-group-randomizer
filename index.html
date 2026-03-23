@@ -425,22 +425,6 @@ function createSlots(){
           <span class="updateToggle" onclick="toggleState(${i}); event.stopPropagation()">Update</span>
           <input type="text" placeholder="Preset name" class="presetName wc-input" onclick="event.stopPropagation()">
           <button class="wc-btn wc-small" onclick="savePreset(${i}); event.stopPropagation();">Save</button>
-          <select class="keyDungeon wc-input small" onclick="event.stopPropagation()">
-            <option value="">No Key</option>
-            <option>Magisters' Terrace</option>
-            <option>Maisara Caverns</option>
-            <option>Nexus-Point Xenas</option>
-            <option>Windrunner Spire</option>
-            <option>Algeth'ar Academy</option>
-            <option>Pit of Saron</option>
-            <option>Seat of the Triumvirate</option>
-            <option>Skyreach</option>
-          </select>
-
-          <select class="keyLevel wc-input small" onclick="event.stopPropagation()">
-            <option value="">Lvl</option>
-            ${Array.from({length:19}, (_,i)=>`<option>${i+2}</option>`).join("")}
-          </select>
         </div>
       </div>
       <div class="slotBody">
@@ -473,9 +457,26 @@ function createSlots(){
 
       row.innerHTML=`
         <label style="color:${classColors[cls]}">
-          <input type="checkbox" class="classTick" onclick="event.stopPropagation()">
           ${cls}
         </label>
+
+        <select class="keyDungeon wc-input small">
+          <option value="">No Key</option>
+          <option>Magisters' Terrace</option>
+          <option>Maisara Caverns</option>
+          <option>Nexus-Point Xenas</option>
+          <option>Windrunner Spire</option>
+          <option>Algeth'ar Academy</option>
+          <option>Pit of Saron</option>
+          <option>Seat of the Triumvirate</option>
+          <option>Skyreach</option>
+        </select>
+
+        <select class="keyLevel wc-input small">
+          <option value="">Lvl</option>
+          ${Array.from({length:19}, (_,i)=>`<option>${i+2}</option>`).join("")}
+        </select>
+
         <span class="specs">${specHTML}</span>
       `
       classList.appendChild(row)
