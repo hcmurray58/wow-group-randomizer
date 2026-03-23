@@ -434,7 +434,6 @@ function createSlots(){
           <select class="presetSelect wc-input small" onchange="presetSelected(${i})" onclick="event.stopPropagation()"></select>
           <span class="updateToggle" onclick="toggleState(${i}); event.stopPropagation()">Update</span>
           <input type="text" placeholder="Preset name" class="presetName wc-input" onclick="event.stopPropagation()">
-          <button class="wc-btn wc-small" onclick="savePreset(${i}); event.stopPropagation();">Save</button>
         </div>
       </div>
       <div class="slotBody">
@@ -534,8 +533,18 @@ function createSlots(){
           }
           // when a spec changes ensure state rules applied so specs visibility updates
           applyState(idx)
+          autoSaveSlot(idx)
         })
       })
+
+      const keyDungeonSelect = row.querySelector('.keyDungeon')
+      const keyLevelSelect = row.querySelector('.keyLevel')
+      if(keyDungeonSelect){
+        keyDungeonSelect.addEventListener('change', ()=> autoSaveSlot(i))
+      }
+      if(keyLevelSelect){
+        keyLevelSelect.addEventListener('change', ()=> autoSaveSlot(i))
+      }
     })
 
     container.appendChild(slot)
@@ -543,7 +552,10 @@ function createSlots(){
 
     // make the preset name input update the header live
     const nameInput = slot.querySelector('.presetName')
-    nameInput.addEventListener('input', ()=> updateSlotTitle(i))
+    nameInput.addEventListener('input', ()=>{
+      updateSlotTitle(i)
+      autoSaveSlot(i)
+    })
 
     // set initial state: selected-only (State 1)
     slot.dataset.state = 'selected-only'
@@ -587,6 +599,55 @@ function presetSelected(i){
 
   // refresh all dropdowns so chosen name can't be picked in other slots
   document.querySelectorAll('.slot').forEach((_, idx) => updatePresetDropdown(idx))
+}
+
+function getPresetStorageKeyForSlot(slot){
+  const nameInput = slot.querySelector('.presetName')
+  const select = slot.querySelector('.presetSelect')
+  const typedName = nameInput ? nameInput.value.trim() : ""
+  if(typedName) return "wowSlotPreset_" + typedName
+  if(select && select.value) return select.value
+  return ""
+}
+
+function collectSlotPresetData(slot){
+  return {
+    state: slot.dataset.state || 'selected-only',
+    pug: !!(slot.querySelector('.pug') && slot.querySelector('.pug').checked),
+    rows: [...slot.querySelectorAll('.classRow')].map(row=>{
+      const classTick = row.querySelector('.classTick')
+      const specInputs = [...row.querySelectorAll('.specTick')]
+      const keyDungeon = row.querySelector('.keyDungeon')
+      const keyLevel = row.querySelector('.keyLevel')
+
+      return {
+        classEnabled: !!(classTick && classTick.checked),
+        keyDungeon: keyDungeon ? keyDungeon.value : "",
+        keyLevel: keyLevel ? keyLevel.value : "",
+        specs: specInputs.map(s=>({checked:s.checked}))
+      }
+    })
+  }
+}
+
+function autoSaveSlot(i){
+  const slot = document.querySelectorAll('.slot')[i]
+  if(!slot) return
+
+  const key = getPresetStorageKeyForSlot(slot)
+  if(!key) return
+
+  localStorage.setItem(key, JSON.stringify(collectSlotPresetData(slot)))
+
+  // keep dropdowns in sync and reserve this name across other slots
+  document.querySelectorAll('.slot').forEach((_, idx) => updatePresetDropdown(idx))
+
+  const select = slot.querySelector('.presetSelect')
+  if(select){
+    select.value = key
+  }
+
+  updateSlotTitle(i)
 }
 
 function onPugToggle(i){
@@ -634,6 +695,7 @@ function onPugToggle(i){
     applyState(i)
   }
   updateSlotTitle(i)
+  autoSaveSlot(i)
 }
 
 // toggle between two states:
@@ -646,6 +708,7 @@ function toggleState(i){
   slot.dataset.state = next
   applyState(i)
   updateSlotTitle(i)
+  autoSaveSlot(i)
 }
 
 function applyState(i){
@@ -722,26 +785,7 @@ function getSlotName(slot, i){
 }
 
 function savePreset(i){
-  const slot=document.querySelectorAll(".slot")[i]
-  const name=slot.querySelector(".presetName").value
-  if(!name) return
-
-  let preset=[]
-  slot.querySelectorAll(".classRow").forEach(row=>{
-    const classTick = row.querySelector(".classTick")
-    const specInputs = [...row.querySelectorAll(".specTick")]
-    preset.push({
-      classEnabled: classTick.checked,
-      specs: specInputs.map(s=>({checked:s.checked}))
-    })
-  })
-
-  localStorage.setItem("wowSlotPreset_"+name,JSON.stringify(preset))
-  // refresh all dropdowns so the new name is reflected and disabled in other slots
-  document.querySelectorAll('.slot').forEach((_, idx) => updatePresetDropdown(idx))
-  slot.querySelector(".presetSelect").value="wowSlotPreset_"+name
-
-  updateSlotTitle(i)
+  autoSaveSlot(i)
 }
 
 function getWeightsKey(slotName){
@@ -817,15 +861,26 @@ function loadPreset(i){
   if(!key) return
   const raw = localStorage.getItem(key)
   if(!raw) return
-  const preset=JSON.parse(raw)
+  const presetData=JSON.parse(raw)
+  const presetRows = Array.isArray(presetData)
+    ? presetData
+    : (Array.isArray(presetData.rows) ? presetData.rows : [])
+  const presetState = Array.isArray(presetData)
+    ? 'selected-only'
+    : (presetData.state || 'selected-only')
+  const presetPug = Array.isArray(presetData)
+    ? false
+    : !!presetData.pug
 
   const classRows = slot.querySelectorAll(".classRow")
   let anySpecChecked = false
   classRows.forEach((row, index)=>{
-    const entry = preset[index]
+    const entry = presetRows[index]
     const classTick = row.querySelector(".classTick")
     const specInputs = [...row.querySelectorAll(".specTick")]
     const specSpan = row.querySelector(".specs")
+    const keyDungeon = row.querySelector(".keyDungeon")
+    const keyLevel = row.querySelector(".keyLevel")
 
     if(!entry){
       classTick.checked = false
@@ -834,6 +889,8 @@ function loadPreset(i){
         s.checked=false
         s.parentElement.style.display = ""
       })
+      if(keyDungeon) keyDungeon.value = ""
+      if(keyLevel) keyLevel.value = ""
       if(specSpan) specSpan.style.display = "none"
       return
     }
@@ -848,6 +905,9 @@ function loadPreset(i){
       s.parentElement.style.display = ""
     })
 
+    if(keyDungeon) keyDungeon.value = entry.keyDungeon || ""
+    if(keyLevel) keyLevel.value = entry.keyLevel || ""
+
     if(classTick.checked){
       row.style.display = "flex"
       if(specSpan) specSpan.style.display = "inline"
@@ -859,6 +919,10 @@ function loadPreset(i){
 
   // if any spec restored as checked, clear PUG and ensure UI enabled
   const pugBox = slot.querySelector(".pug")
+  if(pugBox){
+    pugBox.checked = presetPug
+  }
+
   if(anySpecChecked && pugBox && pugBox.checked){
     pugBox.checked = false
     onPugToggle(i)
@@ -878,7 +942,7 @@ function loadPreset(i){
   slot.querySelector(".presetName").value = key.replace("wowSlotPreset_","")
 
   // keep state as selected-only after load
-  slot.dataset.state = 'selected-only'
+  slot.dataset.state = presetState
   applyState(i)
   updateSlotTitle(i)
 }
