@@ -103,6 +103,10 @@ body{
   vertical-align:middle;
 }
 
+.removeSlotBtn{
+  margin-left:4px;
+}
+
 .slot{
   border:1px solid #4d4d4d; /* slightly lighter border (~10% lighter) */
   margin: 0 auto 10px;
@@ -463,6 +467,7 @@ function addSlotElement(i){
           <span class="updateToggle" onclick="toggleState(${i}); event.stopPropagation()">Update</span>
           <input type="text" placeholder="Preset name" class="presetName wc-input" onclick="event.stopPropagation()">
           <button class="wc-btn wc-small" onclick="savePreset(${i}); event.stopPropagation();">Save</button>
+          <button class="wc-btn wc-small removeSlotBtn" onclick="removeSpecificSlot(${i}); event.stopPropagation();">Remove</button>
         </div>
       </div>
       <div class="slotBody">
@@ -576,14 +581,18 @@ function addSlotElement(i){
       const keyLevelSelect = row.querySelector('.keyLevel')
       if(keyDungeonSelect){
         keyDungeonSelect.addEventListener('change', ()=>{
-          savePreset(i)
+          const slotElem = row.closest('.slot')
+          const idx = Array.prototype.indexOf.call(document.querySelectorAll('.slot'), slotElem)
+          savePreset(idx)
           refreshSlotWeightDisplays()
           savePageState()
         })
       }
       if(keyLevelSelect){
         keyLevelSelect.addEventListener('change', ()=>{
-          savePreset(i)
+          const slotElem = row.closest('.slot')
+          const idx = Array.prototype.indexOf.call(document.querySelectorAll('.slot'), slotElem)
+          savePreset(idx)
           refreshSlotWeightDisplays()
           savePageState()
         })
@@ -596,7 +605,9 @@ function addSlotElement(i){
     // make the preset name input update the header live
     const nameInput = slot.querySelector('.presetName')
     nameInput.addEventListener('input', ()=>{
-      updateSlotTitle(i)
+      const slotElem = nameInput.closest('.slot')
+      const idx = Array.prototype.indexOf.call(document.querySelectorAll('.slot'), slotElem)
+      updateSlotTitle(idx)
       savePageState()
     })
 
@@ -614,6 +625,38 @@ function addSlotElement(i){
   updateSlotTitle(i)
 }
 
+function reindexSlots(){
+  const slots = document.querySelectorAll('.slot')
+  slots.forEach((slot, idx)=>{
+    const header = slot.querySelector('.slotHeader')
+    if(header) header.setAttribute('onclick', 'toggleState(' + idx + ')')
+
+    const pug = slot.querySelector('.pug')
+    if(pug) pug.setAttribute('onchange', 'onPugToggle(' + idx + ')')
+
+    const presetSelect = slot.querySelector('.presetSelect')
+    if(presetSelect) presetSelect.setAttribute('onchange', 'presetSelected(' + idx + ')')
+
+    const updateToggle = slot.querySelector('.updateToggle')
+    if(updateToggle) updateToggle.setAttribute('onclick', 'toggleState(' + idx + '); event.stopPropagation()')
+
+    const saveBtn = slot.querySelector('.header-controls .wc-btn:not(.removeSlotBtn)')
+    if(saveBtn) saveBtn.setAttribute('onclick', 'savePreset(' + idx + '); event.stopPropagation();')
+
+    const removeBtn = slot.querySelector('.removeSlotBtn')
+    if(removeBtn) removeBtn.setAttribute('onclick', 'removeSpecificSlot(' + idx + '); event.stopPropagation();')
+
+    updateSlotTitle(idx)
+  })
+}
+
+function updateRemoveSlotButtons(){
+  const show = document.querySelectorAll('.slot').length > MIN_SLOTS
+  document.querySelectorAll('.removeSlotBtn').forEach(btn=>{
+    btn.style.display = show ? 'inline-block' : 'none'
+  })
+}
+
 function createSlots(){
   pageStateHydrating = true
   const container=document.getElementById("slots")
@@ -626,6 +669,8 @@ function createSlots(){
 
   initPageStatePersistence()
   restorePageState()
+  reindexSlots()
+  updateRemoveSlotButtons()
   pageStateHydrating = false
 
   // Initial weight display refresh
@@ -635,6 +680,20 @@ function createSlots(){
 function addExtraSlot(){
   const nextIndex = document.querySelectorAll(".slot").length
   addSlotElement(nextIndex)
+  reindexSlots()
+  updateRemoveSlotButtons()
+  refreshSlotWeightDisplays()
+  savePageState()
+}
+
+function removeSpecificSlot(i){
+  const slots = document.querySelectorAll('.slot')
+  if(slots.length <= MIN_SLOTS) return
+  if(!slots[i]) return
+  slots[i].remove()
+  reindexSlots()
+  updateRemoveSlotButtons()
+  document.querySelectorAll('.slot').forEach((_, idx) => updatePresetDropdown(idx))
   refreshSlotWeightDisplays()
   savePageState()
 }
@@ -642,10 +701,7 @@ function addExtraSlot(){
 function removeExtraSlot(){
   const slots = document.querySelectorAll(".slot")
   if(slots.length <= MIN_SLOTS) return
-  slots[slots.length - 1].remove()
-  document.querySelectorAll('.slot').forEach((_, idx) => updatePresetDropdown(idx))
-  refreshSlotWeightDisplays()
-  savePageState()
+  removeSpecificSlot(slots.length - 1)
 }
 
 if(document.readyState === 'loading'){
@@ -1698,9 +1754,9 @@ function generate(){
     const keyFooterText = useKeyEnabled && selectedKeysForOutput.length > 0
       ? ("Selected keys: " + selectedKeysForOutput.map(k => "G" + (k.groupIndex + 1) + " " + k.slotName + " - " + k.dungeon + " +" + k.level).join(" | "))
       : ""
-    let footerLines = 2
-    if(requireLust) footerLines += 1
-    if(requireBrez) footerLines += 1
+    let footerLines = groupedResults.length * 2
+    if(requireLust) footerLines += groupedResults.length
+    if(requireBrez) footerLines += groupedResults.length
     if(keyFooterText) footerLines += 1
     if(benchFooterText) footerLines += 1
 
@@ -1822,81 +1878,82 @@ function generate(){
     }
     ctx.restore()
 
-    // providers info at bottom
-    const lustProvidersData = linesData.filter(ld=>{
-      if(ld.isHeader || ld.isPug) return false
-      const cls = classes[ld.className] || []
-      const specEntry = cls.find(s=>s.spec===ld.specName) || {}
-      return !!specEntry.lust
-    }).map(ld=>({ name: ld.slotName, color: classColors[ld.className] || '#eee' }))
+    // providers info at bottom (per group)
+    const providerRows = groupedResults.map((members, gi)=>{
+      const lustProviders = members.filter(g=>{
+        if(g.pug || !g.class) return false
+        const cls = classes[g.class] || []
+        const specEntry = cls.find(s=>s.spec===g.spec) || {}
+        return !!specEntry.lust
+      }).map(g=>({ name: getSlotName(slots[g.slotIndex], g.slotIndex), color: classColors[g.class] || '#eee' }))
 
-    const brezProvidersData = linesData.filter(ld=>{
-      if(ld.isHeader || ld.isPug) return false
-      const cls = classes[ld.className] || []
-      const specEntry = cls.find(s=>s.spec===ld.specName) || {}
-      return !!specEntry.brez
-    }).map(ld=>({ name: ld.slotName, color: classColors[ld.className] || '#eee' }))
+      const brezProviders = members.filter(g=>{
+        if(g.pug || !g.class) return false
+        const cls = classes[g.class] || []
+        const specEntry = cls.find(s=>s.spec===g.spec) || {}
+        return !!specEntry.brez
+      }).map(g=>({ name: getSlotName(slots[g.slotIndex], g.slotIndex), color: classColors[g.class] || '#eee' }))
+
+      return { gi, lustProviders, brezProviders }
+    })
 
     let footerY = 10 + linesData.length * lineHeight + 6
-    // Lust providers line: label then coloured names
-    ctx.fillStyle = "#eee"
-    const lustLabel = "Lust providers: "
-    ctx.fillText(lustLabel, leftPadding, footerY)
-    let x = leftPadding + ctx.measureText(lustLabel).width
-    if(lustProvidersData.length === 0){
+    providerRows.forEach(pr=>{
       ctx.fillStyle = "#eee"
-      ctx.fillText("(none)", x, footerY)
-    } else {
-      lustProvidersData.forEach((p, idx)=>{
-        ctx.fillStyle = p.color
-        ctx.fillText(p.name, x, footerY)
-        x += ctx.measureText(p.name).width
-        if(idx < lustProvidersData.length - 1){
-          ctx.fillStyle = "#eee"
-          const sep = ", "
-          ctx.fillText(sep, x, footerY)
-          x += ctx.measureText(sep).width
-        }
-      })
-    }
-    footerY += lineHeight
+      const lustLabel = "Group " + (pr.gi + 1) + " Lust providers: "
+      ctx.fillText(lustLabel, leftPadding, footerY)
+      let x = leftPadding + ctx.measureText(lustLabel).width
+      if(pr.lustProviders.length === 0){
+        ctx.fillStyle = "#eee"
+        ctx.fillText("(none)", x, footerY)
+      } else {
+        pr.lustProviders.forEach((p, idx)=>{
+          ctx.fillStyle = p.color
+          ctx.fillText(p.name, x, footerY)
+          x += ctx.measureText(p.name).width
+          if(idx < pr.lustProviders.length - 1){
+            ctx.fillStyle = "#eee"
+            const sep = ", "
+            ctx.fillText(sep, x, footerY)
+            x += ctx.measureText(sep).width
+          }
+        })
+      }
+      footerY += lineHeight
 
-    // Battle Rez providers line
-    ctx.fillStyle = "#eee"
-    const brezLabel = "Battle Rez providers: "
-    ctx.fillText(brezLabel, leftPadding, footerY)
-    x = leftPadding + ctx.measureText(brezLabel).width
-    if(brezProvidersData.length === 0){
       ctx.fillStyle = "#eee"
-      ctx.fillText("(none)", x, footerY)
-    } else {
-      brezProvidersData.forEach((p, idx)=>{
-        ctx.fillStyle = p.color
-        ctx.fillText(p.name, x, footerY)
-        x += ctx.measureText(p.name).width
-        if(idx < brezProvidersData.length - 1){
-          ctx.fillStyle = "#eee"
-          const sep = ", "
-          ctx.fillText(sep, x, footerY)
-          x += ctx.measureText(sep).width
-        }
-      })
-    }
-    footerY += lineHeight
+      const brezLabel = "Group " + (pr.gi + 1) + " Battle Rez providers: "
+      ctx.fillText(brezLabel, leftPadding, footerY)
+      x = leftPadding + ctx.measureText(brezLabel).width
+      if(pr.brezProviders.length === 0){
+        ctx.fillStyle = "#eee"
+        ctx.fillText("(none)", x, footerY)
+      } else {
+        pr.brezProviders.forEach((p, idx)=>{
+          ctx.fillStyle = p.color
+          ctx.fillText(p.name, x, footerY)
+          x += ctx.measureText(p.name).width
+          if(idx < pr.brezProviders.length - 1){
+            ctx.fillStyle = "#eee"
+            const sep = ", "
+            ctx.fillText(sep, x, footerY)
+            x += ctx.measureText(sep).width
+          }
+        })
+      }
+      footerY += lineHeight
 
-    // (requireLust / requireBrez already read above)
-    if(requireLust || requireBrez){
       if(requireLust){
-        ctx.fillStyle = (lustProvidersData.length ? "#3ddc84" : "#ff6b6b")
-        ctx.fillText("Lust: " + (lustProvidersData.length ? "OK" : "MISSING"), leftPadding, footerY)
+        ctx.fillStyle = (pr.lustProviders.length ? "#3ddc84" : "#ff6b6b")
+        ctx.fillText("Group " + (pr.gi + 1) + " Lust: " + (pr.lustProviders.length ? "OK" : "MISSING"), leftPadding, footerY)
         footerY += lineHeight
       }
       if(requireBrez){
-        ctx.fillStyle = (brezProvidersData.length ? "#3ddc84" : "#ff6b6b")
-        ctx.fillText("Battle Rez: " + (brezProvidersData.length ? "OK" : "MISSING"), leftPadding, footerY)
+        ctx.fillStyle = (pr.brezProviders.length ? "#3ddc84" : "#ff6b6b")
+        ctx.fillText("Group " + (pr.gi + 1) + " Battle Rez: " + (pr.brezProviders.length ? "OK" : "MISSING"), leftPadding, footerY)
         footerY += lineHeight
       }
-    }
+    })
 
     if(keyFooterText){
       ctx.fillStyle = "#ffd86b"
