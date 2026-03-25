@@ -1683,6 +1683,9 @@ function generate(){
       return role.charAt(0).toUpperCase()+role.slice(1)
     }
 
+    const requireLust = document.getElementById("lustRequired").checked
+    const requireBrez = document.getElementById("brezRequired").checked
+
     // sort each generated group: Tank, Healer, then DPS alphabetical by slot name
     const rolePriority = {tank:0, healer:1, dps:2}
     const linesData = []
@@ -1790,8 +1793,6 @@ function generate(){
     const rightPadding = 10
 
     // compute footer lines (Lust + Brez + optional requirement status lines)
-    const requireLust = document.getElementById("lustRequired").checked
-    const requireBrez = document.getElementById("brezRequired").checked
     const benchNames = benchIndices.map(i => getSlotName(slots[i], i))
     const benchFooterText = benchNames.length > 0 ? ("Bench: " + benchNames.join(", ")) : ""
     const keyFooterText = useKeyEnabled && selectedKeysForOutput.length > 0
