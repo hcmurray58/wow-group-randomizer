@@ -7,162 +7,10 @@
 <style>
 body{
   font-family:Arial;
-  background:#050505; /* darker page background */
+  background:#050505;
   color:#eee;
   margin:20px;
-  padding-bottom:5cm; /* added ~5cm bottom space for easier scrolling */
-}
-
-/* Warcraft-like button styles (applied only to the specific buttons via classes) */
-.wc-btn{
-  padding:6px 12px;
-  font-weight:700;
-  font-family: "Trebuchet MS", Arial, sans-serif;
-  color:#1b1300;
-  border-radius:6px;
-  cursor:pointer;
-  transition: transform .06s ease, box-shadow .06s ease, filter .06s ease;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  text-shadow: 0 1px 0 rgba(255,255,255,0.18);
-  border:1px solid #6b4a12;
-  box-shadow: 0 5px 0 #5a3e10, 0 8px 20px rgba(0,0,0,0.45);
-  background: linear-gradient(#f7df9a, #c28f25);
-}
-.wc-primary{
-  background: linear-gradient(#ffd86b, #e09a2e);
-  border-color: #7a5314;
-  box-shadow: 0 6px 0 #664714, 0 12px 28px rgba(0,0,0,0.55);
-  color:#0f0b00;
-  font-size:15px;
-}
-.wc-small{
-  padding:4px 8px;
-  font-size:13px;
-  border-radius:4px;
-  box-shadow: 0 3px 0 #564012;
-}
-.wc-btn:hover{
-  transform: translateY(-1px);
-  filter:brightness(1.03);
-  box-shadow: 0 8px 0 #5a3e10, 0 12px 26px rgba(0,0,0,0.45);
-}
-.wc-btn:active{
-  transform: translateY(1px);
-  box-shadow: 0 3px 0 #4a3008;
-}
-.wc-btn:disabled{
-  opacity:0.5;
-  cursor:not-allowed;
-  filter:grayscale(0.4) saturate(0.6);
-}
-
-/* input/select aesthetic to match Warcraft buttons */
-.wc-input{
-  padding:6px 10px;
-  font-weight:700;
-  font-family: "Trebuchet MS", Arial, sans-serif;
-  font-size:13px;
-  color:#1b1300;
-  background: linear-gradient(#fff7df, #e0c07a);
-  border:1px solid #6b4a12;
-  border-radius:6px;
-  box-shadow: inset 0 2px 0 rgba(255,255,255,0.25), 0 3px 0 #5a3e10;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-}
-.wc-input.small{
-  padding:4px 8px;
-  font-size:13px;
-  border-radius:5px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 2px 0 #5a3e10;
-}
-.wc-input:focus{
-  outline:none;
-  box-shadow: 0 6px 0 rgba(90,62,16,0.3);
-}
-
-/* updateToggle small button look */
-.updateToggle{
-  display:inline-block;
-  padding:6px 10px;
-  border-radius:6px;
-  background: linear-gradient(#ffd86b, #e09a2e);
-  color:#0f0b00;
-  border:1px solid #7a5314;
-  box-shadow: 0 3px 0 #664714;
-  font-size:13px;
-  cursor:pointer;
-  text-decoration:none;
-  text-align:center;
-  vertical-align:middle;
-}
-
-/* center output & copy button using flex to ensure perfect centering */
-.result{
-  margin-top:25px;
-  font-size:18px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:8px;
-}
-.result img{
-  display:block;
-  margin:0 auto;
-  max-width:100%;
-  border-radius:8px;
-  border:1px solid rgba(255,255,255,0.04);
-}
-/* ensure copy button sits centered beneath the image */
-.result .wc-btn{
-  display:inline-block;
-  margin-top:6px;
-}
-
-#topControls{
-  margin: 0 auto 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* keep the block centered on the page */
-  gap: 4px;
-}
-
-/* make each label a fixed-width row so the checkbox column lines up */
-#topControls label{
-  width: 220px;           /* fixed width so inputs align vertically */
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: flex-start; /* checkbox at same x for every row */
-  padding: 2px 0;
-  box-sizing: border-box;
-  text-align: left;       /* keep label text left-aligned inside the fixed width */
-}
-
-#slots{
-  margin: 0 auto;
-  max-width: calc((180px + (120px + 3ch) * 4 + 48px) * 1.3);
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* center the primary generate button */
-.wc-btn.wc-primary{
-  display: block;
-  margin: 12px auto;
-}
-
-/* center output and copy button */
-.result{
-  margin-top: 25px;
-  font-size: 18px;
-  text-align: center;
-}
-.result .wc-btn{
-  display: inline-block;
-  margin-top: 8px;
+  padding-bottom:5cm;
 }
 
 .slot{
@@ -1478,17 +1326,58 @@ function generate(){
   // forcedRoles still used below when updating role weights
   const forcedRoles = possibleRoles.map(pr => pr.length === 1 ? pr[0] : null)
 
-  const benchCount = Math.max(0, slots.length - 5)
+  const totalSlots = slots.length
+  const groupCount = Math.floor(totalSlots / 5)
+  const benchCount = totalSlots - (groupCount * 5)
+  if(groupCount === 0){
+    document.getElementById("result").innerHTML="Need at least 5 slots to generate a group."
+    return
+  }
 
-  for(let attempt=0;attempt<10000;attempt++){
-    let group=[]
-    const benchIndices = pickBenchIndices(slots, benchCount)
-    const activeIndices = slots.map((_, idx) => idx).filter(idx => !benchIndices.includes(idx))
+  const useKeyEnabled = document.getElementById("useKey") && document.getElementById("useKey").checked
 
-    if(activeIndices.length !== 5) continue
+  function validateKeyForGroup(localGroup){
+    const requiredDungeons = [...document.querySelectorAll(".keyRequiredDungeon:checked")].map(cb => cb.value)
+    const minLevelRaw = parseInt(document.getElementById("keyMinLevel") ? document.getElementById("keyMinLevel").value : "2", 10)
+    const maxLevelRaw = parseInt(document.getElementById("keyMaxLevel") ? document.getElementById("keyMaxLevel").value : "20", 10)
+    const minLevel = Number.isNaN(minLevelRaw) ? 2 : minLevelRaw
+    const maxLevel = Number.isNaN(maxLevelRaw) ? 20 : maxLevelRaw
+    const low = Math.max(2, Math.min(minLevel, maxLevel))
+    const high = Math.min(20, Math.max(minLevel, maxLevel))
 
-    // Weighted backtracking role assignment — always finds a valid assignment if one exists.
-    // For each slot try roles in a weighted-random order; backtrack if a branch dead-ends.
+    const keyCandidates = []
+    localGroup.forEach(g=>{
+      if(g.pug || !g.class) return
+      const slot = slots[g.slotIndex]
+      if(!slot) return
+
+      const classRow = [...slot.querySelectorAll(".classRow")].find(row=>{
+        const classLabel = row.querySelector("label")
+        const className = classLabel ? classLabel.textContent.replace(/\s+/g, " ").trim() : ""
+        return className === g.class
+      })
+      if(!classRow) return
+
+      const keyDungeon = classRow.querySelector(".keyDungeon") ? classRow.querySelector(".keyDungeon").value : ""
+      const keyLevelStr = classRow.querySelector(".keyLevel") ? classRow.querySelector(".keyLevel").value : ""
+      const keyLevel = parseInt(keyLevelStr, 10)
+
+      if(!keyDungeon || Number.isNaN(keyLevel)) return
+      if(requiredDungeons.length > 0 && !requiredDungeons.includes(keyDungeon)) return
+      if(keyLevel < low || keyLevel > high) return
+
+      keyCandidates.push({
+        slotName: getSlotName(slot, g.slotIndex),
+        dungeon: keyDungeon,
+        level: keyLevel
+      })
+    })
+
+    if(keyCandidates.length === 0) return null
+    return random(keyCandidates)
+  }
+
+  function buildGroupForSlots(groupSlotIndices){
     const rolesPool = ["tank","healer","dps","dps","dps"]
     const rolesByActive = Array(5).fill(null)
     const slotOrder = [0,1,2,3,4]
@@ -1502,11 +1391,10 @@ function generate(){
     function assignRoles(orderIdx){
       if(orderIdx === 5) return rolesPool.length === 0
       const activePos = slotOrder[orderIdx]
-      const slotIdx = activeIndices[activePos]
+      const slotIdx = groupSlotIndices[activePos]
       const available = possibleRoles[slotIdx].filter(r => rolesPool.includes(r))
       if(available.length === 0) return false
 
-      // Build a weighted-random ordering of the available roles to try
       const slotName = getSlotName(slots[slotIdx], slotIdx)
       const roleWeights = loadRoleWeights(slotName)
       const weighted = available.map(r => ({ r, w: roleWeights[r] || 1 }))
@@ -1534,111 +1422,101 @@ function generate(){
       return false
     }
 
-    if(!assignRoles(0)) continue
+    if(!assignRoles(0)) return null
 
+    const localGroup = []
     for(let activePos=0;activePos<5;activePos++){
-      const i = activeIndices[activePos]
+      const i = groupSlotIndices[activePos]
       const assignedRole = rolesByActive[activePos]
-      if(!assignedRole) continue
+      if(!assignedRole) return null
+
       if(slotChoices[i]==="pug"){
-        group.push({pug:true, role:assignedRole, slotIndex:i})
+        localGroup.push({pug:true, role:assignedRole, slotIndex:i})
       } else {
         const options=slotChoices[i].filter(o=>o.role===assignedRole)
-        if(options.length===0) continue
-        // clone chosen option and attach slot index
+        if(options.length===0) return null
+
         const slotName = getSlotName(slots[i], i)
         const weights = loadWeights(slotName)
-
         const lastGroup = window.lastGroup || []
+        const lastPick = lastGroup.find(g => !g.pug && g.slotIndex === i)
 
-      // find last spec for this slot
-      const lastPick = lastGroup.find(g => 
-        !g.pug && g.slotIndex === i
-      )
-
-      // try to avoid same spec
-      let filteredOptions = options
-
-      if(lastPick){
-        const withoutRepeat = options.filter(o => o.spec !== lastPick.spec)
-
-        // only use filtered list if it still has options
-        if(withoutRepeat.length > 0){
-          filteredOptions = withoutRepeat
+        let filteredOptions = options
+        if(lastPick){
+          const withoutRepeat = options.filter(o => o.spec !== lastPick.spec)
+          if(withoutRepeat.length > 0) filteredOptions = withoutRepeat
         }
-      }
 
-      // now roll normally
-      const picked = weightedRandom(filteredOptions, weights)
-        const chosen = {...picked, slotIndex:i}
-        group.push(chosen)
+        const picked = weightedRandom(filteredOptions, weights)
+        localGroup.push({...picked, slotIndex:i})
       }
     }
-
-    if(group.length<5) continue
 
     if(document.getElementById("tankNonPugRequired").checked){
-      if(group.some(g=>g.role==="tank" && g.pug)) continue
+      if(localGroup.some(g=>g.role==="tank" && g.pug)) return null
     }
     if(document.getElementById("healerNonPugRequired").checked){
-      if(group.some(g=>g.role==="healer" && g.pug)) continue
+      if(localGroup.some(g=>g.role==="healer" && g.pug)) return null
     }
     if(document.getElementById("avoidDuplicateDPS").checked){
-      const dps=group.filter(g=>g.role==="dps" && !g.pug).map(g=>g.spec)
-      if(new Set(dps).size!==dps.length) continue
+      const dps=localGroup.filter(g=>g.role==="dps" && !g.pug).map(g=>g.spec)
+      if(new Set(dps).size!==dps.length) return null
     }
     if(document.getElementById("lustRequired").checked){
-      if(!group.some(g=>g.lust)) continue
+      if(!localGroup.some(g=>g.lust)) return null
     }
     if(document.getElementById("brezRequired").checked){
-      if(!group.some(g=>g.brez)) continue
+      if(!localGroup.some(g=>g.brez)) return null
     }
 
-    let selectedKeyForOutput = null
-    const useKeyEnabled = document.getElementById("useKey") && document.getElementById("useKey").checked
-
+    let selectedKey = null
     if(useKeyEnabled){
-      const requiredDungeons = [...document.querySelectorAll(".keyRequiredDungeon:checked")].map(cb => cb.value)
-      const minLevelRaw = parseInt(document.getElementById("keyMinLevel") ? document.getElementById("keyMinLevel").value : "2", 10)
-      const maxLevelRaw = parseInt(document.getElementById("keyMaxLevel") ? document.getElementById("keyMaxLevel").value : "20", 10)
-      const minLevel = Number.isNaN(minLevelRaw) ? 2 : minLevelRaw
-      const maxLevel = Number.isNaN(maxLevelRaw) ? 20 : maxLevelRaw
-      const low = Math.max(2, Math.min(minLevel, maxLevel))
-      const high = Math.min(20, Math.max(minLevel, maxLevel))
-
-      const keyCandidates = []
-
-      group.forEach(g=>{
-        if(g.pug || !g.class) return false
-        const slot = slots[g.slotIndex]
-        if(!slot) return false
-
-        const classRow = [...slot.querySelectorAll(".classRow")].find(row=>{
-          const classLabel = row.querySelector("label")
-          const className = classLabel ? classLabel.textContent.replace(/\s+/g, " ").trim() : ""
-          return className === g.class
-        })
-
-        if(!classRow) return false
-
-        const keyDungeon = classRow.querySelector(".keyDungeon") ? classRow.querySelector(".keyDungeon").value : ""
-        const keyLevelStr = classRow.querySelector(".keyLevel") ? classRow.querySelector(".keyLevel").value : ""
-        const keyLevel = parseInt(keyLevelStr, 10)
-
-        if(!keyDungeon || Number.isNaN(keyLevel)) return false
-        if(requiredDungeons.length > 0 && !requiredDungeons.includes(keyDungeon)) return false
-        if(keyLevel < low || keyLevel > high) return false
-
-        keyCandidates.push({
-          slotName: getSlotName(slot, g.slotIndex),
-          dungeon: keyDungeon,
-          level: keyLevel
-        })
-      })
-
-      if(keyCandidates.length === 0) continue
-      selectedKeyForOutput = random(keyCandidates)
+      selectedKey = validateKeyForGroup(localGroup)
+      if(!selectedKey) return null
     }
+
+    return { members: localGroup, selectedKey }
+  }
+
+  for(let attempt=0;attempt<10000;attempt++){
+    let group=[]
+    const benchIndices = pickBenchIndices(slots, benchCount)
+    const activeIndices = slots.map((_, idx) => idx).filter(idx => !benchIndices.includes(idx))
+    if(activeIndices.length !== groupCount * 5) continue
+
+    const shuffledActive = [...activeIndices]
+    for(let k = shuffledActive.length - 1; k > 0; k--){
+      const j = Math.floor(Math.random() * (k + 1))
+      const temp = shuffledActive[k]
+      shuffledActive[k] = shuffledActive[j]
+      shuffledActive[j] = temp
+    }
+
+    const groupedResults = []
+    const selectedKeysForOutput = []
+    let invalid = false
+    for(let gi=0; gi<groupCount; gi++){
+      const groupSlotIndices = shuffledActive.slice(gi * 5, gi * 5 + 5)
+      const solved = buildGroupForSlots(groupSlotIndices)
+      if(!solved){
+        invalid = true
+        break
+      }
+      const withGroupIndex = solved.members.map(m => ({...m, groupIndex: gi}))
+      groupedResults.push(withGroupIndex)
+      if(solved.selectedKey){
+        selectedKeysForOutput.push({
+          groupIndex: gi,
+          slotName: solved.selectedKey.slotName,
+          dungeon: solved.selectedKey.dungeon,
+          level: solved.selectedKey.level
+        })
+      }
+    }
+    if(invalid) continue
+
+    group = groupedResults.flat()
+    if(group.length < groupCount * 5) continue
 
     // Build nicely aligned lines using slot names and keep colouring for class + spec and role
     const lineHeight = 20
@@ -1650,41 +1528,43 @@ function generate(){
       return role.charAt(0).toUpperCase()+role.slice(1)
     }
 
-    // sort: Tank, Healer, then DPS alphabetical by slot name
+    // sort each generated group: Tank, Healer, then DPS alphabetical by slot name
     const rolePriority = {tank:0, healer:1, dps:2}
-    const sortedGroup = [...group].sort((a,b) => {
-      const pa = rolePriority[a.role] ?? 99
-      const pb = rolePriority[b.role] ?? 99
-      if (pa !== pb) return pa - pb
+    const linesData = []
+    for(let gi = 0; gi < groupedResults.length; gi++){
+      const members = [...groupedResults[gi]].sort((a,b) => {
+        const pa = rolePriority[a.role] ?? 99
+        const pb = rolePriority[b.role] ?? 99
+        if (pa !== pb) return pa - pb
 
-      // same role
-      // For DPS: non-PUGs first (alphabetical), then PUG DPS last
-      if (a.role === 'dps' && b.role === 'dps') {
-        if (!!a.pug !== !!b.pug) return a.pug ? 1 : -1
+        if (a.role === 'dps' && b.role === 'dps') {
+          if (!!a.pug !== !!b.pug) return a.pug ? 1 : -1
+          const nameA = getSlotName(slots[a.slotIndex], a.slotIndex)
+          const nameB = getSlotName(slots[b.slotIndex], b.slotIndex)
+          return nameA.localeCompare(nameB)
+        }
+
         const nameA = getSlotName(slots[a.slotIndex], a.slotIndex)
         const nameB = getSlotName(slots[b.slotIndex], b.slotIndex)
         return nameA.localeCompare(nameB)
-      }
+      })
 
-      // Non-DPS: alphabetical by slot name
-      const nameA = getSlotName(slots[a.slotIndex], a.slotIndex)
-      const nameB = getSlotName(slots[b.slotIndex], b.slotIndex)
-      return nameA.localeCompare(nameB)
-    })
+      linesData.push({ isHeader: true, headerText: "Group " + (gi + 1) })
 
-    // Prepare structured lines for text fallback and image rendering
-    const linesData = sortedGroup.map(g=>{
-      return {
-        slotName: getSlotName(slots[g.slotIndex], g.slotIndex),
-        role: g.role || "",
-        roleText: formatRole(g.role),
-        className: g.class || "",
-        specName: g.spec || "",
-        color: classColors[g.class] || '#fff',
-        isPug: !!g.pug,
-        slotIndex: g.slotIndex
-      }
-    })
+      members.forEach(g => {
+        linesData.push({
+          isHeader: false,
+          slotName: getSlotName(slots[g.slotIndex], g.slotIndex),
+          role: g.role || "",
+          roleText: formatRole(g.role),
+          className: g.class || "",
+          specName: g.spec || "",
+          color: classColors[g.class] || '#fff',
+          isPug: !!g.pug,
+          slotIndex: g.slotIndex
+        })
+      })
+    }
 
     // determine column widths dynamically so columns line up vertically,
     // with at least a 3-character gap between columns
@@ -1699,10 +1579,10 @@ function generate(){
     const measureClassW = (t) => tempCtx.measureText(t||'').width
     const measureSpecW = (t) => tempCtx.measureText(t||'').width
 
-    const maxNameW = Math.max(0, ...linesData.map(ld => measureNameW(ld.slotName)))
-    const maxRoleW = Math.max(0, ...linesData.map(ld => measureRoleW(ld.roleText)))
-    const maxClassW = Math.max(0, ...linesData.map(ld => measureClassW(ld.className)))
-    const maxSpecW = Math.max(0, ...linesData.map(ld => measureSpecW(ld.specName)))
+    const maxNameW = Math.max(0, ...linesData.map(ld => ld.isHeader ? tempCtx.measureText(ld.headerText).width : measureNameW(ld.slotName)))
+    const maxRoleW = Math.max(0, ...linesData.map(ld => ld.isHeader ? 0 : measureRoleW(ld.roleText)))
+    const maxClassW = Math.max(0, ...linesData.map(ld => ld.isHeader ? 0 : measureClassW(ld.className)))
+    const maxSpecW = Math.max(0, ...linesData.map(ld => ld.isHeader ? 0 : measureSpecW(ld.specName)))
 
     const nameFieldWidth = Math.ceil(maxNameW + minGap)
     const roleFieldWidth = Math.ceil(maxRoleW + minGap)
@@ -1716,8 +1596,8 @@ function generate(){
     const requireBrez = document.getElementById("brezRequired").checked
     const benchNames = benchIndices.map(i => getSlotName(slots[i], i))
     const benchFooterText = benchNames.length > 0 ? ("Bench: " + benchNames.join(", ")) : ""
-    const keyFooterText = useKeyEnabled && selectedKeyForOutput
-      ? ("Selected key: " + selectedKeyForOutput.slotName + " - " + selectedKeyForOutput.dungeon + " +" + selectedKeyForOutput.level)
+    const keyFooterText = useKeyEnabled && selectedKeysForOutput.length > 0
+      ? ("Selected keys: " + selectedKeysForOutput.map(k => "G" + (k.groupIndex + 1) + " " + k.slotName + " - " + k.dungeon + " +" + k.level).join(" | "))
       : ""
     let footerLines = 2
     if(requireLust) footerLines += 1
@@ -1806,6 +1686,11 @@ function generate(){
     const rowTop = panelY + 10
     linesData.forEach((ld, idx) => {
       const y = rowTop + idx * lineHeight
+      if(ld.isHeader){
+        ctx.fillStyle = "#ffd86b"
+        ctx.fillText(ld.headerText, xName, y)
+        return
+      }
       // name
       ctx.fillStyle = "#eee"
       ctx.fillText(ld.slotName + ":", xName, y)
@@ -1840,14 +1725,14 @@ function generate(){
 
     // providers info at bottom
     const lustProvidersData = linesData.filter(ld=>{
-      if(ld.isPug) return false
+      if(ld.isHeader || ld.isPug) return false
       const cls = classes[ld.className] || []
       const specEntry = cls.find(s=>s.spec===ld.specName) || {}
       return !!specEntry.lust
     }).map(ld=>({ name: ld.slotName, color: classColors[ld.className] || '#eee' }))
 
     const brezProvidersData = linesData.filter(ld=>{
-      if(ld.isPug) return false
+      if(ld.isHeader || ld.isPug) return false
       const cls = classes[ld.className] || []
       const specEntry = cls.find(s=>s.spec===ld.specName) || {}
       return !!specEntry.brez
@@ -2045,6 +1930,7 @@ function generate(){
 
     // Refresh weights display
     refreshSlotWeightDisplays()
+    window.lastGroup = group
     savePageState()
 
     return
