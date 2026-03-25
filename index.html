@@ -282,6 +282,13 @@ h1{
   gap: 4px; /* slightly tighter spacing between checkboxes */
 }
 
+#slotActions{
+  margin: 0 auto 10px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
 #keyControls{
   width: 560px;
   max-width: 95%;
@@ -350,6 +357,11 @@ h1{
 <h1><img src="WoW-Group-Randomizer.png" alt="WoW Group Randomizer" style="height:100px"></h1>
 
 <div id="slots"></div>
+
+<div id="slotActions">
+  <button class="wc-btn wc-small" onclick="addExtraSlot()">Add Slot</button>
+  <button class="wc-btn wc-small" onclick="removeExtraSlot()">Remove Extra Slot</button>
+</div>
 
 <!-- moved the five top checkboxes here (below slots, above generate button) -->
 <div id="topControls">
@@ -473,13 +485,24 @@ const classes={
 
 const PAGE_STATE_KEY = "wowPageState_v1"
 const LAST_RESULT_IMAGE_KEY = "wowLastResultImage_v1"
+const BENCH_WEIGHTS_KEY = "wowBenchWeights_v1"
+const MIN_SLOTS = 5
 let pageStateHydrating = false
 
-function createSlots(){
-  pageStateHydrating = true
-  const container=document.getElementById("slots")
+function getInitialSlotCount(){
+  const raw = localStorage.getItem(PAGE_STATE_KEY)
+  if(!raw) return MIN_SLOTS
+  try{
+    const parsed = JSON.parse(raw)
+    const savedCount = parsed && Array.isArray(parsed.slots) ? parsed.slots.length : MIN_SLOTS
+    return Math.max(MIN_SLOTS, savedCount)
+  } catch(e){
+    return MIN_SLOTS
+  }
+}
 
-  for(let i=0;i<5;i++){
+function addSlotElement(i){
+  const container=document.getElementById("slots")
     const slot=document.createElement("div")
     slot.className="slot"
 
@@ -501,7 +524,6 @@ function createSlots(){
       </div>
     `
 
-    const body=slot.querySelector(".slotBody")
     const classList=slot.querySelector(".classList")
 
     Object.keys(classes).forEach(cls=>{
@@ -621,7 +643,7 @@ function createSlots(){
       }
     })
 
-    container.appendChild(slot)
+  container.appendChild(slot)
     updatePresetDropdown(i)
 
     // make the preset name input update the header live
@@ -642,7 +664,17 @@ function createSlots(){
       onPugToggle(i)
     }
 
-    updateSlotTitle(i)
+  updateSlotTitle(i)
+}
+
+function createSlots(){
+  pageStateHydrating = true
+  const container=document.getElementById("slots")
+  container.innerHTML = ""
+
+  const slotCount = getInitialSlotCount()
+  for(let i=0;i<slotCount;i++){
+    addSlotElement(i)
   }
 
   initPageStatePersistence()
@@ -651,6 +683,22 @@ function createSlots(){
 
   // Initial weight display refresh
   refreshSlotWeightDisplays()
+}
+
+function addExtraSlot(){
+  const nextIndex = document.querySelectorAll(".slot").length
+  addSlotElement(nextIndex)
+  refreshSlotWeightDisplays()
+  savePageState()
+}
+
+function removeExtraSlot(){
+  const slots = document.querySelectorAll(".slot")
+  if(slots.length <= MIN_SLOTS) return
+  slots[slots.length - 1].remove()
+  document.querySelectorAll('.slot').forEach((_, idx) => updatePresetDropdown(idx))
+  refreshSlotWeightDisplays()
+  savePageState()
 }
 
 if(document.readyState === 'loading'){
@@ -1164,6 +1212,46 @@ function weightedRandom(options, weights){
   return weighted[0].option
 }
 
+function loadBenchWeights(){
+  const raw = localStorage.getItem(BENCH_WEIGHTS_KEY)
+  return raw ? JSON.parse(raw) : {}
+}
+
+function saveBenchWeights(weights){
+  localStorage.setItem(BENCH_WEIGHTS_KEY, JSON.stringify(weights))
+}
+
+function weightedPickIndex(candidates){
+  let total = 0
+  candidates.forEach(c => total += c.weight)
+  let r = Math.random() * total
+  for(let i=0; i<candidates.length; i++){
+    if(r < candidates[i].weight) return i
+    r -= candidates[i].weight
+  }
+  return candidates.length - 1
+}
+
+function pickBenchIndices(slots, benchCount){
+  if(benchCount <= 0) return []
+  const benchWeights = loadBenchWeights()
+  const pool = slots.map((slot, idx)=>{
+    return {
+      idx,
+      weight: Math.max(0.01, benchWeights[idx] !== undefined ? benchWeights[idx] : 10000)
+    }
+  })
+
+  const bench = []
+  while(bench.length < benchCount && pool.length > 0){
+    const pickIdx = weightedPickIndex(pool)
+    bench.push(pool[pickIdx].idx)
+    pool.splice(pickIdx, 1)
+  }
+
+  return bench.sort((a,b)=>a-b)
+}
+
 function loadPreset(i){
   const slot=document.querySelectorAll(".slot")[i]
   const key=slot.querySelector(".presetSelect").value
@@ -1390,13 +1478,19 @@ function generate(){
   // forcedRoles still used below when updating role weights
   const forcedRoles = possibleRoles.map(pr => pr.length === 1 ? pr[0] : null)
 
+  const benchCount = Math.max(0, slots.length - 5)
+
   for(let attempt=0;attempt<10000;attempt++){
     let group=[]
+    const benchIndices = pickBenchIndices(slots, benchCount)
+    const activeIndices = slots.map((_, idx) => idx).filter(idx => !benchIndices.includes(idx))
+
+    if(activeIndices.length !== 5) continue
 
     // Weighted backtracking role assignment — always finds a valid assignment if one exists.
     // For each slot try roles in a weighted-random order; backtrack if a branch dead-ends.
     const rolesPool = ["tank","healer","dps","dps","dps"]
-    const rolesBySlot = Array(5).fill(null)
+    const rolesByActive = Array(5).fill(null)
     const slotOrder = [0,1,2,3,4]
     for(let k = slotOrder.length - 1; k > 0; k--){
       const j = Math.floor(Math.random() * (k + 1))
@@ -1407,7 +1501,8 @@ function generate(){
 
     function assignRoles(orderIdx){
       if(orderIdx === 5) return rolesPool.length === 0
-      const slotIdx = slotOrder[orderIdx]
+      const activePos = slotOrder[orderIdx]
+      const slotIdx = activeIndices[activePos]
       const available = possibleRoles[slotIdx].filter(r => rolesPool.includes(r))
       if(available.length === 0) return false
 
@@ -1431,9 +1526,9 @@ function generate(){
       for(const role of order){
         const pi = rolesPool.indexOf(role)
         rolesPool.splice(pi, 1)
-        rolesBySlot[slotIdx] = role
+        rolesByActive[activePos] = role
         if(assignRoles(orderIdx + 1)) return true
-        rolesBySlot[slotIdx] = null
+        rolesByActive[activePos] = null
         rolesPool.splice(pi, 0, role)
       }
       return false
@@ -1441,8 +1536,9 @@ function generate(){
 
     if(!assignRoles(0)) continue
 
-    for(let i=0;i<5;i++){
-      const assignedRole = rolesBySlot[i]
+    for(let activePos=0;activePos<5;activePos++){
+      const i = activeIndices[activePos]
+      const assignedRole = rolesByActive[activePos]
       if(!assignedRole) continue
       if(slotChoices[i]==="pug"){
         group.push({pug:true, role:assignedRole, slotIndex:i})
@@ -1618,6 +1714,8 @@ function generate(){
     // compute footer lines (Lust + Brez + optional requirement status lines)
     const requireLust = document.getElementById("lustRequired").checked
     const requireBrez = document.getElementById("brezRequired").checked
+    const benchNames = benchIndices.map(i => getSlotName(slots[i], i))
+    const benchFooterText = benchNames.length > 0 ? ("Bench: " + benchNames.join(", ")) : ""
     const keyFooterText = useKeyEnabled && selectedKeyForOutput
       ? ("Selected key: " + selectedKeyForOutput.slotName + " - " + selectedKeyForOutput.dungeon + " +" + selectedKeyForOutput.level)
       : ""
@@ -1625,10 +1723,12 @@ function generate(){
     if(requireLust) footerLines += 1
     if(requireBrez) footerLines += 1
     if(keyFooterText) footerLines += 1
+    if(benchFooterText) footerLines += 1
 
     const tableWidth = leftPadding + nameFieldWidth + roleFieldWidth + classFieldWidth + maxSpecW + rightPadding + 6
     const keyLineWidth = keyFooterText ? (leftPadding + tempCtx.measureText(keyFooterText).width + rightPadding + 12) : 0
-    const canvasWidth = Math.max(tableWidth, keyLineWidth)
+    const benchLineWidth = benchFooterText ? (leftPadding + tempCtx.measureText(benchFooterText).width + rightPadding + 12) : 0
+    const canvasWidth = Math.max(tableWidth, keyLineWidth, benchLineWidth)
     const canvasHeight = 10 + linesData.length * lineHeight + footerLines * lineHeight + 10
     const canvas = document.createElement('canvas')
     canvas.width = Math.max(300, Math.ceil(canvasWidth))
@@ -1820,6 +1920,12 @@ function generate(){
       footerY += lineHeight
     }
 
+    if(benchFooterText){
+      ctx.fillStyle = "#ffb86c"
+      ctx.fillText(benchFooterText, leftPadding, footerY)
+      footerY += lineHeight
+    }
+
     // show image output and keep it for refresh restore
     const generatedImage = canvas.toDataURL('image/png')
     renderResultImage(generatedImage)
@@ -1924,6 +2030,18 @@ function generate(){
     Object.entries(updatedWeightsBySlot).forEach(([slotName, weights])=>{
       saveWeights(slotName, weights)
     })
+
+    // BENCH WEIGHT UPDATES
+    const benchWeights = loadBenchWeights()
+    slots.forEach((slot, i)=>{
+      const current = benchWeights[i] !== undefined ? benchWeights[i] : 10000
+      if(benchIndices.includes(i)){
+        benchWeights[i] = 1
+      } else {
+        benchWeights[i] = Math.min(current * 1.25 + 25, 10000)
+      }
+    })
+    saveBenchWeights(benchWeights)
 
     // Refresh weights display
     refreshSlotWeightDisplays()
