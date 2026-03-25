@@ -1728,23 +1728,33 @@ function generate(){
         const cls = classes[g.class] || []
         const specEntry = cls.find(s=>s.spec===g.spec) || {}
         return !!specEntry.lust
-      }).map(g=> getSlotName(slots[g.slotIndex], g.slotIndex))
+      }).map(g=>({
+        name: getSlotName(slots[g.slotIndex], g.slotIndex),
+        color: classColors[g.class] || '#eee'
+      }))
 
       const brezProviders = members.filter(g=>{
         if(g.pug || !g.class) return false
         const cls = classes[g.class] || []
         const specEntry = cls.find(s=>s.spec===g.spec) || {}
         return !!specEntry.brez
-      }).map(g=> getSlotName(slots[g.slotIndex], g.slotIndex))
+      }).map(g=>({
+        name: getSlotName(slots[g.slotIndex], g.slotIndex),
+        color: classColors[g.class] || '#eee'
+      }))
 
       linesData.push({
         isProvider: true,
-        providerText: "Lust providers: " + (lustProviders.length ? lustProviders.join(", ") : "(none)")
+        providerLabel: "Lust providers: ",
+        providerNames: lustProviders,
+        providerText: "Lust providers: " + (lustProviders.length ? lustProviders.map(p=>p.name).join(", ") : "(none)")
       })
 
       linesData.push({
         isProvider: true,
-        providerText: "Battle Rez providers: " + (brezProviders.length ? brezProviders.join(", ") : "(none)")
+        providerLabel: "Battle Rez providers: ",
+        providerNames: brezProviders,
+        providerText: "Battle Rez providers: " + (brezProviders.length ? brezProviders.map(p=>p.name).join(", ") : "(none)")
       })
 
       if(requireLust){
@@ -1889,10 +1899,35 @@ function generate(){
         return
       }
       if(ld.isProvider){
-        if(ld.providerStatus === "ok") ctx.fillStyle = "#3ddc84"
-        else if(ld.providerStatus === "missing") ctx.fillStyle = "#ff6b6b"
-        else ctx.fillStyle = "#eee"
-        ctx.fillText(ld.providerText, xName, y)
+        if(ld.providerStatus === "ok"){
+          ctx.fillStyle = "#3ddc84"
+          ctx.fillText(ld.providerText, xName, y)
+        } else if(ld.providerStatus === "missing"){
+          ctx.fillStyle = "#ff6b6b"
+          ctx.fillText(ld.providerText, xName, y)
+        } else {
+          ctx.fillStyle = "#eee"
+          const label = ld.providerLabel || ""
+          ctx.fillText(label, xName, y)
+          let px = xName + ctx.measureText(label).width
+          const providers = ld.providerNames || []
+          if(providers.length === 0){
+            ctx.fillStyle = "#eee"
+            ctx.fillText("(none)", px, y)
+          } else {
+            providers.forEach((p, pi)=>{
+              ctx.fillStyle = p.color || "#eee"
+              ctx.fillText(p.name, px, y)
+              px += ctx.measureText(p.name).width
+              if(pi < providers.length - 1){
+                ctx.fillStyle = "#eee"
+                const sep = ", "
+                ctx.fillText(sep, px, y)
+                px += ctx.measureText(sep).width
+              }
+            })
+          }
+        }
         return
       }
       // name
