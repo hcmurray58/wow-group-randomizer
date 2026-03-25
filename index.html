@@ -1719,6 +1719,45 @@ function generate(){
           slotIndex: g.slotIndex
         })
       })
+
+      const lustProviders = members.filter(g=>{
+        if(g.pug || !g.class) return false
+        const cls = classes[g.class] || []
+        const specEntry = cls.find(s=>s.spec===g.spec) || {}
+        return !!specEntry.lust
+      }).map(g=> getSlotName(slots[g.slotIndex], g.slotIndex))
+
+      const brezProviders = members.filter(g=>{
+        if(g.pug || !g.class) return false
+        const cls = classes[g.class] || []
+        const specEntry = cls.find(s=>s.spec===g.spec) || {}
+        return !!specEntry.brez
+      }).map(g=> getSlotName(slots[g.slotIndex], g.slotIndex))
+
+      linesData.push({
+        isProvider: true,
+        providerText: "Lust providers: " + (lustProviders.length ? lustProviders.join(", ") : "(none)")
+      })
+
+      linesData.push({
+        isProvider: true,
+        providerText: "Battle Rez providers: " + (brezProviders.length ? brezProviders.join(", ") : "(none)")
+      })
+
+      if(requireLust){
+        linesData.push({
+          isProvider: true,
+          providerText: "Lust: " + (lustProviders.length ? "OK" : "MISSING"),
+          providerStatus: lustProviders.length ? "ok" : "missing"
+        })
+      }
+      if(requireBrez){
+        linesData.push({
+          isProvider: true,
+          providerText: "Battle Rez: " + (brezProviders.length ? "OK" : "MISSING"),
+          providerStatus: brezProviders.length ? "ok" : "missing"
+        })
+      }
     }
 
     // determine column widths dynamically so columns line up vertically,
@@ -1734,10 +1773,14 @@ function generate(){
     const measureClassW = (t) => tempCtx.measureText(t||'').width
     const measureSpecW = (t) => tempCtx.measureText(t||'').width
 
-    const maxNameW = Math.max(0, ...linesData.map(ld => ld.isHeader ? tempCtx.measureText(ld.headerText).width : measureNameW(ld.slotName)))
-    const maxRoleW = Math.max(0, ...linesData.map(ld => ld.isHeader ? 0 : measureRoleW(ld.roleText)))
-    const maxClassW = Math.max(0, ...linesData.map(ld => ld.isHeader ? 0 : measureClassW(ld.className)))
-    const maxSpecW = Math.max(0, ...linesData.map(ld => ld.isHeader ? 0 : measureSpecW(ld.specName)))
+    const maxNameW = Math.max(0, ...linesData.map(ld => {
+      if(ld.isHeader) return tempCtx.measureText(ld.headerText).width
+      if(ld.isProvider) return tempCtx.measureText(ld.providerText).width
+      return measureNameW(ld.slotName)
+    }))
+    const maxRoleW = Math.max(0, ...linesData.map(ld => (ld.isHeader || ld.isProvider) ? 0 : measureRoleW(ld.roleText)))
+    const maxClassW = Math.max(0, ...linesData.map(ld => (ld.isHeader || ld.isProvider) ? 0 : measureClassW(ld.className)))
+    const maxSpecW = Math.max(0, ...linesData.map(ld => (ld.isHeader || ld.isProvider) ? 0 : measureSpecW(ld.specName)))
 
     const nameFieldWidth = Math.ceil(maxNameW + minGap)
     const roleFieldWidth = Math.ceil(maxRoleW + minGap)
@@ -1754,9 +1797,7 @@ function generate(){
     const keyFooterText = useKeyEnabled && selectedKeysForOutput.length > 0
       ? ("Selected keys: " + selectedKeysForOutput.map(k => "G" + (k.groupIndex + 1) + " " + k.slotName + " - " + k.dungeon + " +" + k.level).join(" | "))
       : ""
-    let footerLines = groupedResults.length * 2
-    if(requireLust) footerLines += groupedResults.length
-    if(requireBrez) footerLines += groupedResults.length
+    let footerLines = 0
     if(keyFooterText) footerLines += 1
     if(benchFooterText) footerLines += 1
 
@@ -1846,6 +1887,13 @@ function generate(){
         ctx.fillText(ld.headerText, xName, y)
         return
       }
+      if(ld.isProvider){
+        if(ld.providerStatus === "ok") ctx.fillStyle = "#3ddc84"
+        else if(ld.providerStatus === "missing") ctx.fillStyle = "#ff6b6b"
+        else ctx.fillStyle = "#eee"
+        ctx.fillText(ld.providerText, xName, y)
+        return
+      }
       // name
       ctx.fillStyle = "#eee"
       ctx.fillText(ld.slotName + ":", xName, y)
@@ -1878,82 +1926,7 @@ function generate(){
     }
     ctx.restore()
 
-    // providers info at bottom (per group)
-    const providerRows = groupedResults.map((members, gi)=>{
-      const lustProviders = members.filter(g=>{
-        if(g.pug || !g.class) return false
-        const cls = classes[g.class] || []
-        const specEntry = cls.find(s=>s.spec===g.spec) || {}
-        return !!specEntry.lust
-      }).map(g=>({ name: getSlotName(slots[g.slotIndex], g.slotIndex), color: classColors[g.class] || '#eee' }))
-
-      const brezProviders = members.filter(g=>{
-        if(g.pug || !g.class) return false
-        const cls = classes[g.class] || []
-        const specEntry = cls.find(s=>s.spec===g.spec) || {}
-        return !!specEntry.brez
-      }).map(g=>({ name: getSlotName(slots[g.slotIndex], g.slotIndex), color: classColors[g.class] || '#eee' }))
-
-      return { gi, lustProviders, brezProviders }
-    })
-
     let footerY = 10 + linesData.length * lineHeight + 6
-    providerRows.forEach(pr=>{
-      ctx.fillStyle = "#eee"
-      const lustLabel = "Group " + (pr.gi + 1) + " Lust providers: "
-      ctx.fillText(lustLabel, leftPadding, footerY)
-      let x = leftPadding + ctx.measureText(lustLabel).width
-      if(pr.lustProviders.length === 0){
-        ctx.fillStyle = "#eee"
-        ctx.fillText("(none)", x, footerY)
-      } else {
-        pr.lustProviders.forEach((p, idx)=>{
-          ctx.fillStyle = p.color
-          ctx.fillText(p.name, x, footerY)
-          x += ctx.measureText(p.name).width
-          if(idx < pr.lustProviders.length - 1){
-            ctx.fillStyle = "#eee"
-            const sep = ", "
-            ctx.fillText(sep, x, footerY)
-            x += ctx.measureText(sep).width
-          }
-        })
-      }
-      footerY += lineHeight
-
-      ctx.fillStyle = "#eee"
-      const brezLabel = "Group " + (pr.gi + 1) + " Battle Rez providers: "
-      ctx.fillText(brezLabel, leftPadding, footerY)
-      x = leftPadding + ctx.measureText(brezLabel).width
-      if(pr.brezProviders.length === 0){
-        ctx.fillStyle = "#eee"
-        ctx.fillText("(none)", x, footerY)
-      } else {
-        pr.brezProviders.forEach((p, idx)=>{
-          ctx.fillStyle = p.color
-          ctx.fillText(p.name, x, footerY)
-          x += ctx.measureText(p.name).width
-          if(idx < pr.brezProviders.length - 1){
-            ctx.fillStyle = "#eee"
-            const sep = ", "
-            ctx.fillText(sep, x, footerY)
-            x += ctx.measureText(sep).width
-          }
-        })
-      }
-      footerY += lineHeight
-
-      if(requireLust){
-        ctx.fillStyle = (pr.lustProviders.length ? "#3ddc84" : "#ff6b6b")
-        ctx.fillText("Group " + (pr.gi + 1) + " Lust: " + (pr.lustProviders.length ? "OK" : "MISSING"), leftPadding, footerY)
-        footerY += lineHeight
-      }
-      if(requireBrez){
-        ctx.fillStyle = (pr.brezProviders.length ? "#3ddc84" : "#ff6b6b")
-        ctx.fillText("Group " + (pr.gi + 1) + " Battle Rez: " + (pr.brezProviders.length ? "OK" : "MISSING"), leftPadding, footerY)
-        footerY += lineHeight
-      }
-    })
 
     if(keyFooterText){
       ctx.fillStyle = "#ffd86b"
